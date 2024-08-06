@@ -59,7 +59,7 @@ def train_net(dataset_name):
                        prefetch_factor=5,
                        persistent_workers=True)
     train_loader = DataLoader(train_dataset, shuffle=True, drop_last=False, batch_size=ph.batch_size, **loader_args)
-    val_loader = DataLoader(val_dataset, shuffle=False, drop_last=False, batch_size=1, **loader_args)
+    val_loader = DataLoader(val_dataset, shuffle=False, drop_last=False, batch_size=32, **loader_args)
 
     # 初始化日志记录
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
