@@ -16,7 +16,7 @@ import wandb  # Weights and Biases，实验跟踪和可视化工具
 from rs_mamba_ss import RSM_SS  # 变化检测模型（mamba模型 ）
 from torchmetrics import MetricCollection, Accuracy, Precision, Recall, F1Score, JaccardIndex  # 评估指标工具
 from Utils.utils import train_val_test # 训练和验证函数
-from mygonet import mygoUNet2,RSM_SS3
+from mygonet3 import mygoUNet2,RSM_SS3
 from BaseUnet import UNet
 
 
