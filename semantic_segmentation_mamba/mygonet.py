@@ -1360,7 +1360,6 @@ class DecoderBottleneck(nn.Module):
 
     def __init__(self, in_channels, out_channels, scale_factor=2):
         super().__init__()
-        assert out_channels == in_channel // 2, 'the out_channel is not in_channel//2 in decoder block'
 
         self.upsample = nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True)
         self.layer = nn.Sequential(
@@ -1735,17 +1734,17 @@ class mygoUNet2(nn.Module):
 
     def forward(self, x):
         x1_1, x1_2, x1_3, x1_4 = self.encoder(x)
-        print(x1_1.shape, x1_2.shape, x1_3.shape, x1_4.shape)
+        # print(x1_1.shape, x1_2.shape, x1_3.shape, x1_4.shape)
 
-        decode_3 = self.decoder[0](x1_4, x1_3)
-        decode_2 = self.decoder[1](decode_3, x1_2)
-        decode_1 = self.decoder[2](decode_2, x1_1)
+        # decode_3 = self.decoder[0](x1_3, x1_3)
+        # decode_2 = self.decoder[1](decode_3, x1_2)
+        # decode_1 = self.decoder[2](decode_2, x1_1)
+        #
+        # output = self.decoder[3](decode_1)
+        # output = self.decoder[4](output)
 
-        output = self.decoder[3](decode_1)
-        output = self.decoder[4](output)
-
-        return output
-
+        # return output
+        return x1_1
 
 
 
