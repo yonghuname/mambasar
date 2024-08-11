@@ -1,20 +1,20 @@
-import os  # 操作系统接口，用于进行文件和目录操作
-import time  # 时间相关的函数，如计时、获取当前时间等
-import math  # 数学运算函数，如三角函数、对数、幂运算等
-import copy  # 提供浅拷贝和深拷贝操作
-from functools import partial  # 高阶函数工具，允许固定函数的部分参数或关键字参数
+import os                    # 操作系统接口，用于进行文件和目录操作
+import time                  # 时间相关的函数，如计时、获取当前时间等
+import math                  # 数学运算函数，如三角函数、对数、幂运算等
+import copy                  # 提供浅拷贝和深拷贝操作
+from functools import partial # 高阶函数工具，允许固定函数的部分参数或关键字参数
 from typing import Optional, Callable, Any  # 类型注解工具，Optional用于可选类型，Callable用于函数类型，Any表示任意类型
-from collections import OrderedDict  # 有序字典，按插入顺序存储键值对
+from collections import OrderedDict         # 有序字典，按插入顺序存储键值对
 
-import torch  # PyTorch的主要包，提供张量计算和自动微分
-import torch.nn as nn  # PyTorch的神经网络模块，包含各种神经网络层和损失函数
+import torch                 # PyTorch的主要包，提供张量计算和自动微分
+import torch.nn as nn        # PyTorch的神经网络模块，包含各种神经网络层和损失函数
 import torch.nn.functional as F  # PyTorch中定义神经网络层的函数式接口
 import torch.utils.checkpoint as checkpoint  # 用于内存优化的检查点机制，通过分段存储和重新计算来节省内存
-from einops import rearrange, repeat  # 强大的张量操作库，rearrange用于重新排列张量维度，repeat用于沿特定维度重复张量
+from einops import rearrange, repeat # 强大的张量操作库，rearrange用于重新排列张量维度，repeat用于沿特定维度重复张量
 from timm.models.layers import DropPath, trunc_normal_  # timm库中的模型层，DropPath用于随机深度的实现，trunc_normal_用于截断正态分布初始化
 from fvcore.nn import FlopCountAnalysis, flop_count_str, flop_count, parameter_count  # 用于计算模型的浮点运算数（FLOPs）和参数计数的工
 
-DropPath.__repr__ = lambda self: f"timm.DropPath({self.drop_prob})"  # 可以清楚地看到 DropPath 对象的丢弃概率是多少，这对于理解和调试代码非常有帮助
+DropPath.__repr__ = lambda self: f"timm.DropPath({self.drop_prob})" # 可以清楚地看到 DropPath 对象的丢弃概率是多少，这对于理解和调试代码非常有帮助
 
 # import selective scan ============================== 是自定义的 CUDA 扩展模块，旨在加速和优化选择性扫描操作
 try:
@@ -71,7 +71,6 @@ def flops_selective_scan_fn(B=1, L=256, D=768, N=16, with_D=True, with_Z=False, 
         flops += B * D * L
     return flops
 
-
 # 用于参考计算选择性扫描操作的浮点运算数（FLOPs）
 def flops_selective_scan_ref(B=1, L=256, D=768, N=16, with_D=True, with_Z=False, with_Group=True, with_complex=False):
     """
@@ -99,9 +98,10 @@ def flops_selective_scan_ref(B=1, L=256, D=768, N=16, with_D=True, with_Z=False,
                 flop = float(np.floor(float(line.split(":")[-1]) / 2))
                 return flop
 
+
     assert not with_complex
 
-    flops = 0  # below code flops = 0
+    flops = 0 # below code flops = 0
 
     flops += get_flops_einsum([[B, D, L], [D, N]], "bdl,dn->bdln")
     if with_Group:
@@ -121,7 +121,6 @@ def flops_selective_scan_ref(B=1, L=256, D=768, N=16, with_D=True, with_Z=False,
         flops += B * D * L
     return flops
 
-
 # 打印输入张量的调试名称.以便更容易地跟踪和理解数据流
 def print_jit_input_names(inputs):
     print("input params: ", end=" ", flush=True)
@@ -139,8 +138,7 @@ class SelectiveScanMamba(torch.autograd.Function):
     # comment all checks if inside cross_selective_scan
     @staticmethod
     @torch.cuda.amp.custom_fwd
-    def forward(ctx, u, delta, A, B, C, D=None, delta_bias=None, delta_softplus=False, nrows=1, backnrows=1,
-                oflex=True):
+    def forward(ctx, u, delta, A, B, C, D=None, delta_bias=None, delta_softplus=False, nrows=1, backnrows=1, oflex=True):
         # assert nrows in [1, 2, 3, 4], f"{nrows}" # 8+ is too slow to compile
         # assert u.shape[1] % (B.shape[1] * nrows) == 0, f"{nrows}, {u.shape}, {B.shape}"
         ctx.delta_softplus = delta_softplus
@@ -171,8 +169,8 @@ class SelectiveScanMamba(torch.autograd.Function):
     def backward(ctx, dout, *args):
         u, delta, A, B, C, D, delta_bias, x = ctx.saved_tensors
         if dout.stride(-1) != 1:
-            dout = dout.contiguous()  #
-        # u = u.contiguous()是PyTorch中的一个操作，它用于将张量u转换为一个连续布局的副本。在PyTorch中，张量（tensor）的数据可以是连续的，也可以是不连续的。连续（contiguous）意味着张量的数据在内存中是连续存储的，没有任何间隙。
+            dout = dout.contiguous()#
+# u = u.contiguous()是PyTorch中的一个操作，它用于将张量u转换为一个连续布局的副本。在PyTorch中，张量（tensor）的数据可以是连续的，也可以是不连续的。连续（contiguous）意味着张量的数据在内存中是连续存储的，没有任何间隙。
 
         du, ddelta, dA, dB, dC, dD, ddelta_bias, *rest = selective_scan_cuda.bwd(
             u, delta, A, B, C, D, None, delta_bias, dout, x, None, None, ctx.delta_softplus,
@@ -182,14 +180,12 @@ class SelectiveScanMamba(torch.autograd.Function):
         # dC = dC.squeeze(1) if getattr(ctx, "squeeze_C", False) else dC
         return (du, ddelta, dA, dB, dC, dD, ddelta_bias, None, None, None, None)
 
-
 # 与上一个不同，这是用selective_scan_cuda_core模块
 class SelectiveScanCore(torch.autograd.Function):
     # comment all checks if inside cross_selective_scan
     @staticmethod
     @torch.cuda.amp.custom_fwd
-    def forward(ctx, u, delta, A, B, C, D=None, delta_bias=None, delta_softplus=False, nrows=1, backnrows=1,
-                oflex=True):
+    def forward(ctx, u, delta, A, B, C, D=None, delta_bias=None, delta_softplus=False, nrows=1, backnrows=1, oflex=True):
         ctx.delta_softplus = delta_softplus
         out, x, *rest = selective_scan_cuda_core.fwd(u, delta, A, B, C, D, delta_bias, delta_softplus, 1)
         ctx.save_for_backward(u, delta, A, B, C, D, delta_bias, x)
@@ -206,14 +202,12 @@ class SelectiveScanCore(torch.autograd.Function):
         )
         return (du, ddelta, dA, dB, dC, dD, ddelta_bias, None, None, None, None)
 
-
 # 与上一个不同，这是用selective_scan_cuda_oflex模块
 class SelectiveScanOflex(torch.autograd.Function):
     # comment all checks if inside cross_selective_scan
     @staticmethod
     @torch.cuda.amp.custom_fwd
-    def forward(ctx, u, delta, A, B, C, D=None, delta_bias=None, delta_softplus=False, nrows=1, backnrows=1,
-                oflex=True):
+    def forward(ctx, u, delta, A, B, C, D=None, delta_bias=None, delta_softplus=False, nrows=1, backnrows=1, oflex=True):
         ctx.delta_softplus = delta_softplus
         out, x, *rest = selective_scan_cuda_oflex.fwd(u, delta, A, B, C, D, delta_bias, delta_softplus, 1, oflex)
         ctx.save_for_backward(u, delta, A, B, C, D, delta_bias, x)
@@ -230,14 +224,12 @@ class SelectiveScanOflex(torch.autograd.Function):
         )
         return (du, ddelta, dA, dB, dC, dD, ddelta_bias, None, None, None, None)
 
-
 # 用于模拟选择性扫描操作的前向和反向传播。它的主要作用是作为一个占位符或调试工具，而不进行实际的计算操作
 class SelectiveScanFake(torch.autograd.Function):
     # comment all checks if inside cross_selective_scan
     @staticmethod
     @torch.cuda.amp.custom_fwd
-    def forward(ctx, u, delta, A, B, C, D=None, delta_bias=None, delta_softplus=False, nrows=1, backnrows=1,
-                oflex=True):
+    def forward(ctx, u, delta, A, B, C, D=None, delta_bias=None, delta_softplus=False, nrows=1, backnrows=1, oflex=True):
         ctx.delta_softplus = delta_softplus
         ctx.backnrows = backnrows
         x = delta
@@ -251,10 +243,8 @@ class SelectiveScanFake(torch.autograd.Function):
         u, delta, A, B, C, D, delta_bias, x = ctx.saved_tensors
         if dout.stride(-1) != 1:
             dout = dout.contiguous()
-        du, ddelta, dA, dB, dC, dD, ddelta_bias = u * 0, delta * 0, A * 0, B * 0, C * 0, C * 0, (
-            D * 0 if D else None), (delta_bias * 0 if delta_bias else None)
+        du, ddelta, dA, dB, dC, dD, ddelta_bias = u * 0, delta * 0, A * 0, B * 0, C * 0, C * 0, (D * 0 if D else None), (delta_bias * 0 if delta_bias else None)
         return (du, ddelta, dA, dB, dC, dD, ddelta_bias, None, None, None, None)
-
 
 # =============
 
@@ -267,8 +257,7 @@ def antidiagonal_gather(tensor):
     # 扩展索引以适应B和C维度
     expanded_index = index.unsqueeze(0).unsqueeze(0).expand(B, C, -1, -1)
     # 使用gather进行索引选择
-    return tensor.gather(3, expanded_index).transpose(-1, -2).reshape(B, C, H * W)
-
+    return tensor.gather(3, expanded_index).transpose(-1,-2).reshape(B, C, H*W)
 
 def diagonal_gather(tensor):
     # 取出矩阵所有反斜向的元素并拼接 (从左上角到右下角)
@@ -278,8 +267,7 @@ def diagonal_gather(tensor):
     # 扩展索引以适应B和C维度
     expanded_index = index.unsqueeze(0).unsqueeze(0).expand(B, C, -1, -1)
     # 使用gather进行索引选择
-    return tensor.gather(3, expanded_index).transpose(-1, -2).reshape(B, C, H * W)
-
+    return tensor.gather(3, expanded_index).transpose(-1,-2).reshape(B, C, H*W)
 
 def diagonal_scatter(tensor_flat, original_shape):
     # 把斜向元素拼接起来的一维向量还原为最初的矩阵形式 (还原的是左上角到右下角的)
@@ -296,7 +284,6 @@ def diagonal_scatter(tensor_flat, original_shape):
     result_tensor.scatter_(3, expanded_index, tensor_reshaped)
     return result_tensor
 
-
 def antidiagonal_scatter(tensor_flat, original_shape):
     # 把反斜向元素拼接起来的一维向量还原为最初的矩阵形式(还原的是右上角到左下角的)
     B, C, H, W = original_shape
@@ -311,11 +298,10 @@ def antidiagonal_scatter(tensor_flat, original_shape):
     result_tensor.scatter_(3, expanded_index, tensor_reshaped)
     return result_tensor
 
-
 class CrossScan(torch.autograd.Function):
     # ZSJ 这里是把图像按照特定方向展平的地方，改变扫描方向可以在这里修改
     @staticmethod
-    def forward(ctx, x: torch.Tensor):  # 前向传播，分割8个方向
+    def forward(ctx, x: torch.Tensor): #前向传播，分割8个方向
         B, C, H, W = x.shape
         ctx.shape = (B, C, H, W)
         # xs = x.new_empty((B, 4, C, H * W))
@@ -323,17 +309,17 @@ class CrossScan(torch.autograd.Function):
         # 添加横向和竖向的扫描
         xs[:, 0] = x.flatten(2, 3)
         xs[:, 1] = x.transpose(dim0=2, dim1=3).flatten(2, 3)
-        xs[:, 2:4] = torch.flip(xs[:, 0:2], dims=[-1])  # 上面两步操作反过来扫描
+        xs[:, 2:4] = torch.flip(xs[:, 0:2], dims=[-1]) # 上面两步操作反过来扫描
 
         # 提供斜向和反斜向的扫描
         xs[:, 4] = diagonal_gather(x)
         xs[:, 5] = antidiagonal_gather(x)
-        xs[:, 6:8] = torch.flip(xs[:, 4:6], dims=[-1])  # 上面两步操作反过来扫描
+        xs[:, 6:8] = torch.flip(xs[:, 4:6], dims=[-1]) # 上面两步操作反过来扫描
 
-        return xs  # 包含了一个不同方向扫描结果的矩阵
+        return xs # 包含了一个不同方向扫描结果的矩阵
 
     @staticmethod
-    def backward(ctx, ys: torch.Tensor):  # 将 forward 方法中展平并拼接的张量 ys 恢复到原始张量的形式
+    def backward(ctx, ys: torch.Tensor): # 将 forward 方法中展平并拼接的张量 ys 恢复到原始张量的形式
         # out: (b, k, d, l)
         B, C, H, W = ctx.shape
         L = H * W
@@ -348,7 +334,7 @@ class CrossScan(torch.autograd.Function):
         # 把斜向和反斜向的反向部分再反向回来，并和原来的斜向和反斜向相加
         y_da = ys[:, 4:6] + ys[:, 6:8].flip(dims=[-1]).view(B, 2, -1, L)
         # 把斜向和反斜向的部分都转成原来的最初的矩阵形式，再相加
-        y_da = diagonal_scatter(y_da[:, 0], (B, C, H, W)) + antidiagonal_scatter(y_da[:, 1], (B, C, H, W))
+        y_da = diagonal_scatter(y_da[:, 0], (B,C,H,W)) + antidiagonal_scatter(y_da[:, 1], (B,C,H,W))
 
         y_res = y_rb + y_da
         # return y.view(B, -1, H, W)
@@ -357,7 +343,7 @@ class CrossScan(torch.autograd.Function):
 
 class CrossMerge(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, ys: torch.Tensor):  # 将 CrossScan 的输出重新组合并还原成原始张量的形状
+    def forward(ctx, ys: torch.Tensor): # 将 CrossScan 的输出重新组合并还原成原始张量的形状
         B, K, D, H, W = ys.shape
         ctx.shape = (H, W)
         ys = ys.view(B, K, D, -1)
@@ -372,14 +358,14 @@ class CrossMerge(torch.autograd.Function):
         # 把斜向和反斜向的反向部分再反向回来，并和原来的斜向和反斜向相加
         y_da = ys[:, 4:6] + ys[:, 6:8].flip(dims=[-1]).view(B, 2, D, -1)
         # 把斜向和反斜向的部分都转成原来的最初的矩阵形式，再相加
-        y_da = diagonal_scatter(y_da[:, 0], (B, D, H, W)) + antidiagonal_scatter(y_da[:, 1], (B, D, H, W))
+        y_da = diagonal_scatter(y_da[:, 0], (B,D,H,W)) + antidiagonal_scatter(y_da[:, 1], (B,D,H,W))
 
         y_res = y_rb + y_da
         return y_res.view(B, D, -1)
         # return y
 
     @staticmethod
-    def backward(ctx, x: torch.Tensor):  # 将还原后的张量重新展平并拼接，以便计算梯度
+    def backward(ctx, x: torch.Tensor): # 将还原后的张量重新展平并拼接，以便计算梯度
         # B, D, L = x.shape
         # out: (b, k, d, l)
         H, W = ctx.shape
@@ -394,8 +380,8 @@ class CrossMerge(torch.autograd.Function):
         # xs = xs.view(B, 4, C, H, W)
 
         # 提供斜向和反斜向的扫描
-        xs[:, 4] = diagonal_gather(x.view(B, C, H, W))
-        xs[:, 5] = antidiagonal_gather(x.view(B, C, H, W))
+        xs[:, 4] = diagonal_gather(x.view(B,C,H,W))
+        xs[:, 5] = antidiagonal_gather(x.view(B,C,H,W))
         xs[:, 6:8] = torch.flip(xs[:, 4:6], dims=[-1])
 
         # return xs
@@ -403,12 +389,12 @@ class CrossMerge(torch.autograd.Function):
 
 
 # these are for ablations =============(消融实验)
-# CrossScan_Ab_2direction 类实现了一个简化版的张量展平和恢复操作，仅涉及两个方向。
+#CrossScan_Ab_2direction 类实现了一个简化版的张量展平和恢复操作，仅涉及两个方向。
 # 与 CrossScan 类相比，CrossScan_Ab_2direction 仅对输入张量进行横向展平操作，并将这些展平的结果在反向传播中恢复到原始形状。
 # 这种简化的操作可以用于特定的测试或消融实验，评估不同展平方向对模型性能的影响
 
 # 在前向传播中对输入张量进行展平和翻转操作，在反向传播中将其还原
-class CrossScan_Ab_2direction(torch.autograd.Function):  # 侧重于对输入张量进行展平和翻转
+class CrossScan_Ab_2direction(torch.autograd.Function): # 侧重于对输入张量进行展平和翻转
     @staticmethod
     def forward(ctx, x: torch.Tensor):
         B, C, H, W = x.shape
@@ -429,7 +415,7 @@ class CrossScan_Ab_2direction(torch.autograd.Function):  # 侧重于对输入张
         return y.view(B, -1, H, W)
 
 
-class CrossMerge_Ab_2direction(torch.autograd.Function):  # 侧重于对多个方向展平的张量进行合并
+class CrossMerge_Ab_2direction(torch.autograd.Function): # 侧重于对多个方向展平的张量进行合并
     @staticmethod
     def forward(ctx, ys: torch.Tensor):
         B, K, D, H, W = ys.shape
@@ -486,41 +472,40 @@ class CrossMerge_Ab_1direction(torch.autograd.Function):
         xs = x.view(B, 1, C, L).repeat(1, 4, 1, 1).contiguous().view(B, 4, C, H, W)
         return xs
 
-
-# CrossScan_Ab_2direction 和 CrossMerge_Ab_2direction 涉及翻转和展平操作。适用于需要多方向展平和合并操作的情况
-# CrossScan_Ab_1direction 和 CrossMerge_Ab_1direction 只涉及简单的展平和重复操作。更适用于需要简单展平和重复操作的情况
+#CrossScan_Ab_2direction 和 CrossMerge_Ab_2direction 涉及翻转和展平操作。适用于需要多方向展平和合并操作的情况
+#CrossScan_Ab_1direction 和 CrossMerge_Ab_1direction 只涉及简单的展平和重复操作。更适用于需要简单展平和重复操作的情况
 
 # =============
 # ZSJ 这里是mamba的具体内容，要增加扫描方向就在这里改
 def cross_selective_scan(
-        x: torch.Tensor = None,  # 输入张量，形状为 (B, D, H, W)，其中 B 是批次大小，D 是通道数，H 是高度，W 是宽度
-        x_proj_weight: torch.Tensor = None,  # 用于投影输入张量的权重张量，形状为 (K, C, D)，K表示有几个扫描方向
-        x_proj_bias: torch.Tensor = None,  # 用于投影输入张量的偏置张量，形状为 (K, C)
-        dt_projs_weight: torch.Tensor = None,  # 用于投影 dts 张量的权重张量，形状为 (K, D, R), R: 投影后的维度
-        dt_projs_bias: torch.Tensor = None,  # 用于投影 dts 张量的偏置张量，形状为 (K, D)
-        A_logs: torch.Tensor = None,  # 对数形式的矩阵 A 的参数，形状为 (D, N)，用于选择性扫描
-        Ds: torch.Tensor = None,  # 向量 D 的参数，形状为 (K * C)，用于选择性扫描
-        delta_softplus=True,  # 一个布尔值，指示是否在选择性扫描中应用 softplus 激活函数
-        out_norm: torch.nn.Module = None,  # 一个归一化模块，应用于输出张量。可以是 LayerNorm、Softmax、Sigmoid
-        out_norm_shape="v0",  # 一个字符串，指示归一化后输出张量的形状。默认为 "v0"。可能的值包括 "v0" 和 "v1"
-        # ==============================
-        to_dtype=True,  # 一个布尔值，指示是否将输出张量转换为输入张量的类型
-        force_fp32=False,  # 一个布尔值，指示是否强制将张量转换为 float32 类型
-        # ==============================
-        nrows=-1,  # 用于 SelectiveScanNRow 的参数，指示选择性扫描的行数。0 表示自动选择，-1 表示禁用。默认为 -1
-        backnrows=-1,  # 指示选择性扫描的反向行数。0 表示自动选择，-1 表示禁用。默认为 -1
-        ssoflex=True,  # 一个布尔值，指示是否在 SSOflex 中输出 float32。如果为 False，则 SSOflex 的行为与 SSCore 相同
-        # ==============================
-        SelectiveScan=None,  # 一个自定义的选择性扫描函数
-        CrossScan=CrossScan,  # 一个自定义的交叉扫描函数
-        CrossMerge=CrossMerge,  # 一个自定义的交叉合并函数
+    x: torch.Tensor=None, # 输入张量，形状为 (B, D, H, W)，其中 B 是批次大小，D 是通道数，H 是高度，W 是宽度
+    x_proj_weight: torch.Tensor=None, # 用于投影输入张量的权重张量，形状为 (K, C, D)，K表示有几个扫描方向
+    x_proj_bias: torch.Tensor=None, # 用于投影输入张量的偏置张量，形状为 (K, C)
+    dt_projs_weight: torch.Tensor=None,# 用于投影 dts 张量的权重张量，形状为 (K, D, R), R: 投影后的维度
+    dt_projs_bias: torch.Tensor=None, # 用于投影 dts 张量的偏置张量，形状为 (K, D)
+    A_logs: torch.Tensor=None, # 对数形式的矩阵 A 的参数，形状为 (D, N)，用于选择性扫描
+    Ds: torch.Tensor=None, #向量 D 的参数，形状为 (K * C)，用于选择性扫描
+    delta_softplus = True,  # 一个布尔值，指示是否在选择性扫描中应用 softplus 激活函数
+    out_norm: torch.nn.Module=None, # 一个归一化模块，应用于输出张量。可以是 LayerNorm、Softmax、Sigmoid
+    out_norm_shape="v0", # 一个字符串，指示归一化后输出张量的形状。默认为 "v0"。可能的值包括 "v0" 和 "v1"
+    # ==============================
+    to_dtype=True, # 一个布尔值，指示是否将输出张量转换为输入张量的类型
+    force_fp32=False, # 一个布尔值，指示是否强制将张量转换为 float32 类型
+    # ==============================
+    nrows = -1, # 用于 SelectiveScanNRow 的参数，指示选择性扫描的行数。0 表示自动选择，-1 表示禁用。默认为 -1
+    backnrows = -1, # 指示选择性扫描的反向行数。0 表示自动选择，-1 表示禁用。默认为 -1
+    ssoflex=True, # 一个布尔值，指示是否在 SSOflex 中输出 float32。如果为 False，则 SSOflex 的行为与 SSCore 相同
+    # ==============================
+    SelectiveScan=None, # 一个自定义的选择性扫描函数
+    CrossScan=CrossScan, # 一个自定义的交叉扫描函数
+    CrossMerge=CrossMerge, # 一个自定义的交叉合并函数
 ):
     # out_norm: whatever fits (B, L, C); LayerNorm; Sigmoid; Softmax(dim=1);...
 
     B, D, H, W = x.shape
     D, N = A_logs.shape
     K, D, R = dt_projs_weight.shape
-    L = H * W  # 展平后的长度
+    L = H * W # 展平后的长度
 
     # 根据通道数 D 来动态设置 nrows 的值
     if nrows == 0:
@@ -546,9 +531,9 @@ def cross_selective_scan(
     def selective_scan(u, delta, A, B, C, D=None, delta_bias=None, delta_softplus=True):
         return SelectiveScan.apply(u, delta, A, B, C, D, delta_bias, delta_softplus, nrows, backnrows, ssoflex)
 
-    xs = CrossScan.apply(x)  # 对输入张量 x 应用 CrossScan 类的 apply 方法，从而对 x 进行特定的扫描操作，并返回扫描结果 xs
+    xs = CrossScan.apply(x) # 对输入张量 x 应用 CrossScan 类的 apply 方法，从而对 x 进行特定的扫描操作，并返回扫描结果 xs
 
-    # 使用 einsum 操作对输入张量 xs 和权重张量 x_proj_weight 进行多维度的乘法和求和操作
+    #使用 einsum 操作对输入张量 xs 和权重张量 x_proj_weight 进行多维度的乘法和求和操作
     x_dbl = torch.einsum("b k d l, k c d -> b k c l", xs, x_proj_weight)
     if x_proj_bias is not None:
         x_dbl = x_dbl + x_proj_bias.view(1, K, -1, 1)
@@ -579,10 +564,10 @@ c 是第二个输入张量x_proj_weight的第二维，表示输出通道数。
 """
     xs = xs.view(B, -1, L)
     dts = dts.contiguous().view(B, -1, L)
-    As = -torch.exp(A_logs.to(torch.float))  # (k * c, d_state)
+    As = -torch.exp(A_logs.to(torch.float)) # (k * c, d_state)
     Bs = Bs.contiguous()
     Cs = Cs.contiguous()
-    Ds = Ds.to(torch.float)  # (K * c)
+    Ds = Ds.to(torch.float) # (K * c)
     delta_bias = dt_projs_bias.view(-1).to(torch.float)
 
     if force_fp32:
@@ -597,10 +582,10 @@ c 是第二个输入张量x_proj_weight的第二维，表示输出通道数。
     # ZSJ 这里把处理之后的序列融合起来，并还原回原来的矩阵形式
     y: torch.Tensor = CrossMerge.apply(ys)
 
-    if out_norm_shape in ["v1"]:  # (B, C, H, W)
-        y = out_norm(y.view(B, -1, H, W)).permute(0, 2, 3, 1)  # (B, H, W, C)
-    else:  # (B, L, C)
-        y = y.transpose(dim0=1, dim1=2).contiguous()  # (B, L, C)
+    if out_norm_shape in ["v1"]: # (B, C, H, W)
+        y = out_norm(y.view(B, -1, H, W)).permute(0, 2, 3, 1) # (B, H, W, C)
+    else: # (B, L, C)
+        y = y.transpose(dim0=1, dim1=2).contiguous() # (B, L, C)
         # .permute(0, 2, 3, 1)：permute 函数用于重新排列张量的维度。这里，它将维度从 (B, -1, H, W) 重新排列为 (B, H, W, -1)
         # 。这种排列通常用于将通道维度移动到张量的最后，这符合某些深度学习框架中对图像张量形状的期望（例如，NHWC 布局）。
         y = out_norm(y).view(B, H, W, -1)
@@ -623,14 +608,14 @@ def selective_scan_flop_jit(inputs, outputs):
 class PatchMerging2D(nn.Module):
     def __init__(self, dim, out_dim=-1, norm_layer=nn.LayerNorm):
         super().__init__()
-        self.dim = dim  # 输入特征的通道数
+        self.dim = dim # 输入特征的通道数
         self.reduction = nn.Linear(4 * dim, (2 * dim) if out_dim < 0 else out_dim, bias=False)
         self.norm = norm_layer(4 * dim)
 
     @staticmethod
     def _patch_merging_pad(x: torch.Tensor):
         H, W, _ = x.shape[-3:]
-        if (W % 2 != 0) or (H % 2 != 0):  # 如果输入张量的宽度 W 或高度 H 不是偶数，则进行填充，使其变为偶数
+        if (W % 2 != 0) or (H % 2 != 0): # 如果输入张量的宽度 W 或高度 H 不是偶数，则进行填充，使其变为偶数
             x = F.pad(x, (0, 0, 0, W % 2, 0, H % 2))
         x0 = x[..., 0::2, 0::2, :]  # ... H/2 W/2 C
         x1 = x[..., 1::2, 0::2, :]  # ... H/2 W/2 C
@@ -639,7 +624,7 @@ class PatchMerging2D(nn.Module):
         x = torch.cat([x0, x1, x2, x3], -1)  # ... H/2 W/2 4*C
         return x
 
-    def forward(self, x):  # 前向传播的主要目的是通过补丁合并、归一化和线性变换，对输入特征图进行处理，得到输出特征图
+    def forward(self, x): # 前向传播的主要目的是通过补丁合并、归一化和线性变换，对输入特征图进行处理，得到输出特征图
         x = self._patch_merging_pad(x)
         x = self.norm(x)
         x = self.reduction(x)
@@ -649,36 +634,36 @@ class PatchMerging2D(nn.Module):
 
 class OSSM(nn.Module):
     def __init__(
-            self,
-            # basic dims ===========
-            d_model=96,  # 输入特征的维度
-            d_state=16,  # 状态的维度
-            ssm_ratio=2.0,  # 计算内部维度的比率
-            dt_rank="auto",  # 降维矩阵的秩
-            act_layer=nn.SiLU,  # 激活层类型
-            # dwconv ===============
-            d_conv=3,  # 卷积核大小，< 2 时不使用卷积
-            conv_bias=True,  # 卷积层是否使用偏置
-            # ======================
-            dropout=0.0,
-            bias=False,  # 线性层是否使用偏置
-            # dt init ==============
-            dt_min=0.001,  # 最小时间尺度
-            dt_max=0.1,  # 最大时间尺度
-            dt_init="random",  # 随机初始化时间尺度
-            dt_scale=1.0,  # 时间尺度的缩放因子
-            dt_init_floor=1e-4,  # 控制时间尺度初始化时的最小值
-            initialize="v0",  # 初始化方法
-            # ======================
-            forward_type="v2",  # 前向计算的类型
-            # ======================
-            **kwargs,  # 其他参数
+        self,
+        # basic dims ===========
+        d_model=96, # 输入特征的维度
+        d_state=16, # 状态的维度
+        ssm_ratio=2.0, # 计算内部维度的比率
+        dt_rank="auto", # 降维矩阵的秩
+        act_layer=nn.SiLU, # 激活层类型
+        # dwconv ===============
+        d_conv=3, # 卷积核大小，< 2 时不使用卷积
+        conv_bias=True, # 卷积层是否使用偏置
+        # ======================
+        dropout=0.0,
+        bias=False, # 线性层是否使用偏置
+        # dt init ==============
+        dt_min=0.001, # 最小时间尺度
+        dt_max=0.1,  #  最大时间尺度
+        dt_init="random", # 随机初始化时间尺度
+        dt_scale=1.0,   # 时间尺度的缩放因子
+        dt_init_floor=1e-4, # 控制时间尺度初始化时的最小值
+        initialize="v0", # 初始化方法
+        # ======================
+        forward_type="v2", # 前向计算的类型
+        # ======================
+        **kwargs, # 其他参数
     ):
         factory_kwargs = {"device": None, "dtype": None}  # 包含两个键：device 和 dtype。这两个键用于指定张量的设备和数据类型
-        super().__init__()  # 调用了父类（nn.Module）的初始化方法
+        super().__init__() # 调用了父类（nn.Module）的初始化方法
         d_inner = int(ssm_ratio * d_model)
-        dt_rank = math.ceil(d_model / 16) if dt_rank == "auto" else dt_rank  # dt_rank 是降维矩阵的秩
-        self.d_conv = d_conv  # 设置卷积核大小
+        dt_rank = math.ceil(d_model / 16) if dt_rank == "auto" else dt_rank # dt_rank 是降维矩阵的秩
+        self.d_conv = d_conv # 设置卷积核大小
 
         # tags for forward_type ==============================
         # checkpostfix 函数帮助解析和去除 forward_type 中的特定后缀标签，使得代码能够根据不同的后缀标签调整模型的行为
@@ -718,54 +703,37 @@ class OSSM(nn.Module):
             # v2=partial(self.forward_corev2, force_fp32=(not self.disable_force32), SelectiveScan=SelectiveScanCore),
             v2=partial(self.forward_corev2, force_fp32=True, SelectiveScan=SelectiveScanCore),
             v3=partial(self.forward_corev2, force_fp32=False, SelectiveScan=SelectiveScanOflex),
-            v31d=partial(self.forward_corev2, force_fp32=False, SelectiveScan=SelectiveScanOflex,
-                         cross_selective_scan=partial(
-                             cross_selective_scan, CrossScan=CrossScan_Ab_1direction,
-                             CrossMerge=CrossMerge_Ab_1direction,
-                         )),
-            v32d=partial(self.forward_corev2, force_fp32=False, SelectiveScan=SelectiveScanOflex,
-                         cross_selective_scan=partial(
-                             cross_selective_scan, CrossScan=CrossScan_Ab_2direction,
-                             CrossMerge=CrossMerge_Ab_2direction,
-                         )),
+            v31d=partial(self.forward_corev2, force_fp32=False, SelectiveScan=SelectiveScanOflex, cross_selective_scan=partial(
+                cross_selective_scan, CrossScan=CrossScan_Ab_1direction, CrossMerge=CrossMerge_Ab_1direction,
+            )),
+            v32d=partial(self.forward_corev2, force_fp32=False, SelectiveScan=SelectiveScanOflex, cross_selective_scan=partial(
+                cross_selective_scan, CrossScan=CrossScan_Ab_2direction, CrossMerge=CrossMerge_Ab_2direction,
+            )),
             # ===============================
             fake=partial(self.forward_corev2, force_fp32=(not self.disable_force32), SelectiveScan=SelectiveScanFake),
             v1=partial(self.forward_corev2, force_fp32=True, SelectiveScan=SelectiveScanOflex),
             v01=partial(self.forward_corev2, force_fp32=(not self.disable_force32), SelectiveScan=SelectiveScanMamba),
         )
-        if forward_type.startswith("debug"):  # 当 forward_type 以 "debug" 开头时，这段代码会导入额外的调试模块，并更新 FORWARD_TYPES 字典
-            from .ss2d_ablations import SS2D_ForwardCoreSpeedAblations, SS2D_ForwardCoreModeAblations, \
-                cross_selective_scanv2
+        if forward_type.startswith("debug"): # 当 forward_type 以 "debug" 开头时，这段代码会导入额外的调试模块，并更新 FORWARD_TYPES 字典
+            from .ss2d_ablations import SS2D_ForwardCoreSpeedAblations, SS2D_ForwardCoreModeAblations, cross_selective_scanv2
             FORWARD_TYPES.update(dict(
                 debugforward_core_mambassm_seq=partial(SS2D_ForwardCoreSpeedAblations.forward_core_mambassm_seq, self),
                 debugforward_core_mambassm=partial(SS2D_ForwardCoreSpeedAblations.forward_core_mambassm, self),
-                debugforward_core_mambassm_fp16=partial(SS2D_ForwardCoreSpeedAblations.forward_core_mambassm_fp16,
-                                                        self),
-                debugforward_core_mambassm_fusecs=partial(SS2D_ForwardCoreSpeedAblations.forward_core_mambassm_fusecs,
-                                                          self),
-                debugforward_core_mambassm_fusecscm=partial(
-                    SS2D_ForwardCoreSpeedAblations.forward_core_mambassm_fusecscm, self),
-                debugforward_core_sscore_fusecscm=partial(SS2D_ForwardCoreSpeedAblations.forward_core_sscore_fusecscm,
-                                                          self),
-                debugforward_core_sscore_fusecscm_fwdnrow=partial(
-                    SS2D_ForwardCoreSpeedAblations.forward_core_ssnrow_fusecscm_fwdnrow, self),
-                debugforward_core_sscore_fusecscm_bwdnrow=partial(
-                    SS2D_ForwardCoreSpeedAblations.forward_core_ssnrow_fusecscm_bwdnrow, self),
-                debugforward_core_sscore_fusecscm_fbnrow=partial(
-                    SS2D_ForwardCoreSpeedAblations.forward_core_ssnrow_fusecscm_fbnrow, self),
-                debugforward_core_ssoflex_fusecscm=partial(SS2D_ForwardCoreSpeedAblations.forward_core_ssoflex_fusecscm,
-                                                           self),
-                debugforward_core_ssoflex_fusecscm_i16o32=partial(
-                    SS2D_ForwardCoreSpeedAblations.forward_core_ssoflex_fusecscm_i16o32, self),
-                debugscan_sharessm=partial(self.forward_corev2, force_fp32=False, SelectiveScan=SelectiveScanOflex,
-                                           cross_selective_scan=cross_selective_scanv2),
+                debugforward_core_mambassm_fp16=partial(SS2D_ForwardCoreSpeedAblations.forward_core_mambassm_fp16, self),
+                debugforward_core_mambassm_fusecs=partial(SS2D_ForwardCoreSpeedAblations.forward_core_mambassm_fusecs, self),
+                debugforward_core_mambassm_fusecscm=partial(SS2D_ForwardCoreSpeedAblations.forward_core_mambassm_fusecscm, self),
+                debugforward_core_sscore_fusecscm=partial(SS2D_ForwardCoreSpeedAblations.forward_core_sscore_fusecscm, self),
+                debugforward_core_sscore_fusecscm_fwdnrow=partial(SS2D_ForwardCoreSpeedAblations.forward_core_ssnrow_fusecscm_fwdnrow, self),
+                debugforward_core_sscore_fusecscm_bwdnrow=partial(SS2D_ForwardCoreSpeedAblations.forward_core_ssnrow_fusecscm_bwdnrow, self),
+                debugforward_core_sscore_fusecscm_fbnrow=partial(SS2D_ForwardCoreSpeedAblations.forward_core_ssnrow_fusecscm_fbnrow, self),
+                debugforward_core_ssoflex_fusecscm=partial(SS2D_ForwardCoreSpeedAblations.forward_core_ssoflex_fusecscm, self),
+                debugforward_core_ssoflex_fusecscm_i16o32=partial(SS2D_ForwardCoreSpeedAblations.forward_core_ssoflex_fusecscm_i16o32, self),
+                debugscan_sharessm=partial(self.forward_corev2, force_fp32=False, SelectiveScan=SelectiveScanOflex, cross_selective_scan=cross_selective_scanv2),
             ))
-        self.forward_core = FORWARD_TYPES.get(forward_type,
-                                              None)  # 根据 forward_type 动态地选择前向传播函数，使得模型可以根据不同的配置或调试需求灵活地改变其前向传播行为
+        self.forward_core = FORWARD_TYPES.get(forward_type, None) # 根据 forward_type 动态地选择前向传播函数，使得模型可以根据不同的配置或调试需求灵活地改变其前向传播行为
         # ZSJ k_group 指的是扫描的方向
         # k_group = 4 if forward_type not in ["debugscan_sharessm"] else 1
-        k_group = 8 if forward_type not in [
-            "debugscan_sharessm"] else 1  # 如果 forward_type 为 "v2" 或 "v3" 等等，k_group 将被设置为 8
+        k_group = 8 if forward_type not in ["debugscan_sharessm"] else 1 # 如果 forward_type 为 "v2" 或 "v3" 等等，k_group 将被设置为 8
 
         # in proj =======================================
         d_proj = d_inner if self.disable_z else (d_inner * 2)
@@ -789,7 +757,7 @@ class OSSM(nn.Module):
             nn.Linear(d_inner, (dt_rank + d_state * 2), bias=False, **factory_kwargs)
             for _ in range(k_group)
         ]
-        self.x_proj_weight = nn.Parameter(torch.stack([t.weight for t in self.x_proj], dim=0))  # (K, N, inner)
+        self.x_proj_weight = nn.Parameter(torch.stack([t.weight for t in self.x_proj], dim=0)) # (K, N, inner)
         del self.x_proj
 
         # out proj =======================================
@@ -802,36 +770,32 @@ class OSSM(nn.Module):
                 self.dt_init(dt_rank, d_inner, dt_scale, dt_init, dt_min, dt_max, dt_init_floor, **factory_kwargs)
                 for _ in range(k_group)
             ]
-            self.dt_projs_weight = nn.Parameter(
-                torch.stack([t.weight for t in self.dt_projs], dim=0))  # (K, inner, rank)
-            self.dt_projs_bias = nn.Parameter(torch.stack([t.bias for t in self.dt_projs], dim=0))  # (K, inner)
+            self.dt_projs_weight = nn.Parameter(torch.stack([t.weight for t in self.dt_projs], dim=0)) # (K, inner, rank)
+            self.dt_projs_bias = nn.Parameter(torch.stack([t.bias for t in self.dt_projs], dim=0)) # (K, inner)
             del self.dt_projs
 
             # A, D =======================================
-            self.A_logs = self.A_log_init(d_state, d_inner, copies=k_group, merge=True)  # (K * D, N)
-            self.Ds = self.D_init(d_inner, copies=k_group, merge=True)  # (K * D)
+            self.A_logs = self.A_log_init(d_state, d_inner, copies=k_group, merge=True) # (K * D, N)
+            self.Ds = self.D_init(d_inner, copies=k_group, merge=True) # (K * D)
         elif initialize in ["v1"]:
             # simple init dt_projs, A_logs, Ds
             self.Ds = nn.Parameter(torch.ones((k_group * d_inner)))
-            self.A_logs = nn.Parameter(
-                torch.randn((k_group * d_inner, d_state)))  # A == -A_logs.exp() < 0; # 0 < exp(A * dt) < 1
+            self.A_logs = nn.Parameter(torch.randn((k_group * d_inner, d_state))) # A == -A_logs.exp() < 0; # 0 < exp(A * dt) < 1
             self.dt_projs_weight = nn.Parameter(torch.randn((k_group, d_inner, dt_rank)))
             self.dt_projs_bias = nn.Parameter(torch.randn((k_group, d_inner)))
         elif initialize in ["v2"]:
             # simple init dt_projs, A_logs, Ds
             self.Ds = nn.Parameter(torch.ones((k_group * d_inner)))
-            self.A_logs = nn.Parameter(
-                torch.zeros((k_group * d_inner, d_state)))  # A == -A_logs.exp() < 0; # 0 < exp(A * dt) < 1
+            self.A_logs = nn.Parameter(torch.zeros((k_group * d_inner, d_state))) # A == -A_logs.exp() < 0; # 0 < exp(A * dt) < 1
             self.dt_projs_weight = nn.Parameter(torch.randn((k_group, d_inner, dt_rank)))
             self.dt_projs_bias = nn.Parameter(torch.randn((k_group, d_inner)))
 
     @staticmethod
-    def dt_init(dt_rank, d_inner, dt_scale=1.0, dt_init="random", dt_min=0.001, dt_max=0.1, dt_init_floor=1e-4,
-                **factory_kwargs):
+    def dt_init(dt_rank, d_inner, dt_scale=1.0, dt_init="random", dt_min=0.001, dt_max=0.1, dt_init_floor=1e-4, **factory_kwargs):
         dt_proj = nn.Linear(dt_rank, d_inner, bias=True, **factory_kwargs)
 
         # Initialize special dt projection to preserve variance at initialization
-        dt_init_std = dt_rank ** -0.5 * dt_scale
+        dt_init_std = dt_rank**-0.5 * dt_scale
         if dt_init == "constant":
             nn.init.constant_(dt_proj.weight, dt_init_std)
         elif dt_init == "random":
@@ -896,24 +860,23 @@ class OSSM(nn.Module):
 
         # ZSJ 这里进行data expand操作，也就是把相同的数据在不同方向展开成一维，并拼接起来,但是这个函数只用在旧版本
         # 把横向和竖向拼接在K维度
-        x_hwwh = torch.stack([x.view(B, -1, L), torch.transpose(x, dim0=2, dim1=3).contiguous().view(B, -1, L)],
-                             dim=1).view(B, 2, -1, L)
+        x_hwwh = torch.stack([x.view(B, -1, L), torch.transpose(x, dim0=2, dim1=3).contiguous().view(B, -1, L)], dim=1).view(B, 2, -1, L)
         # torch.flip把横向和竖向两个方向都进行反向操作
-        xs = torch.cat([x_hwwh, torch.flip(x_hwwh, dims=[-1])], dim=1)  # (b, k, d, l)
+        xs = torch.cat([x_hwwh, torch.flip(x_hwwh, dims=[-1])], dim=1) # (b, k, d, l)
 
         x_dbl = torch.einsum("b k d l, k c d -> b k c l", xs, self.x_proj_weight)
         # x_dbl = x_dbl + self.x_proj_bias.view(1, K, -1, 1)
         dts, Bs, Cs = torch.split(x_dbl, [R, N, N], dim=2)
         dts = torch.einsum("b k r l, k d r -> b k d l", dts, self.dt_projs_weight)
 
-        xs = xs.float().view(B, -1, L)  # (b, k * d, l)
-        dts = dts.contiguous().float().view(B, -1, L)  # (b, k * d, l)
-        Bs = Bs.float()  # (b, k, d_state, l)
-        Cs = Cs.float()  # (b, k, d_state, l)
+        xs = xs.float().view(B, -1, L) # (b, k * d, l)
+        dts = dts.contiguous().float().view(B, -1, L) # (b, k * d, l)
+        Bs = Bs.float() # (b, k, d_state, l)
+        Cs = Cs.float() # (b, k, d_state, l)
 
-        As = -torch.exp(self.A_logs.float())  # (k * d, d_state)
-        Ds = self.Ds.float()  # (k * d)
-        dt_projs_bias = self.dt_projs_bias.float().view(-1)  # (k * d)
+        As = -torch.exp(self.A_logs.float()) # (k * d, d_state)
+        Ds = self.Ds.float() # (k * d)
+        dt_projs_bias = self.dt_projs_bias.float().view(-1) # (k * d)
 
         # assert len(xs.shape) == 3 and len(dts.shape) == 3 and len(Bs.shape) == 4 and len(Cs.shape) == 4
         # assert len(As.shape) == 2 and len(Ds.shape) == 1 and len(dt_projs_bias.shape) == 1
@@ -930,13 +893,12 @@ class OSSM(nn.Module):
         wh_y = torch.transpose(out_y[:, 1].view(B, -1, W, H), dim0=2, dim1=3).contiguous().view(B, -1, L)
         invwh_y = torch.transpose(inv_y[:, 1].view(B, -1, W, H), dim0=2, dim1=3).contiguous().view(B, -1, L)
         y = out_y[:, 0] + inv_y[:, 0] + wh_y + invwh_y
-        y = y.transpose(dim0=1, dim1=2).contiguous()  # (B, L, C)
+        y = y.transpose(dim0=1, dim1=2).contiguous() # (B, L, C)
         y = self.out_norm(y).view(B, H, W, -1)
 
         return (y.to(x.dtype) if to_dtype else y)
 
-    def forward_corev2(self, x: torch.Tensor, channel_first=False, SelectiveScan=SelectiveScanOflex,
-                       cross_selective_scan=cross_selective_scan, force_fp32=None):
+    def forward_corev2(self, x: torch.Tensor, channel_first=False, SelectiveScan=SelectiveScanOflex, cross_selective_scan=cross_selective_scan, force_fp32=None):
         if not channel_first:
             x = x.permute(0, 3, 1, 2).contiguous()
         # ZSJ V2版本使用的mamba，要改扫描方向在这里改
@@ -954,12 +916,12 @@ class OSSM(nn.Module):
         with_dconv = (self.d_conv > 1)
         x = self.in_proj(x)
         if not self.disable_z:
-            x, z = x.chunk(2, dim=-1)  # (b, h, w, d)
+            x, z = x.chunk(2, dim=-1) # (b, h, w, d)
             if not self.disable_z_act:
                 z = self.act(z)
         if with_dconv:
             x = x.permute(0, 3, 1, 2).contiguous()
-            x = self.conv2d(x)  # (b, d, h, w)
+            x = self.conv2d(x) # (b, d, h, w)
         x = self.act(x)
         y = self.forward_core(x, channel_first=with_dconv)
         if not self.disable_z:
@@ -978,8 +940,7 @@ class Permute(nn.Module):
 
 
 class Mlp(nn.Module):
-    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.,
-                 channels_first=False):
+    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.,channels_first=False):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
@@ -1001,28 +962,28 @@ class Mlp(nn.Module):
 
 class OSSBlock(nn.Module):
     def __init__(
-            self,
-            hidden_dim: int = 0,
-            drop_path: float = 0,
-            norm_layer: Callable[..., torch.nn.Module] = partial(nn.LayerNorm, eps=1e-6),
-            # =============================
-            ssm_d_state: int = 16,
-            ssm_ratio=2.0,
-            ssm_dt_rank: Any = "auto",
-            ssm_act_layer=nn.SiLU,
-            ssm_conv: int = 3,
-            ssm_conv_bias=True,
-            ssm_drop_rate: float = 0,
-            ssm_init="v0",
-            forward_type="v2",
-            # =============================
-            mlp_ratio=4.0,
-            mlp_act_layer=nn.GELU,
-            mlp_drop_rate: float = 0.0,
-            # =============================
-            use_checkpoint: bool = False,
-            post_norm: bool = False,
-            **kwargs,
+        self,
+        hidden_dim: int = 0,
+        drop_path: float = 0,
+        norm_layer: Callable[..., torch.nn.Module] = partial(nn.LayerNorm, eps=1e-6),
+        # =============================
+        ssm_d_state: int = 16,
+        ssm_ratio=2.0,
+        ssm_dt_rank: Any = "auto",
+        ssm_act_layer=nn.SiLU,
+        ssm_conv: int = 3,
+        ssm_conv_bias=True,
+        ssm_drop_rate: float = 0,
+        ssm_init="v0",
+        forward_type="v2",
+        # =============================
+        mlp_ratio=4.0,
+        mlp_act_layer=nn.GELU,
+        mlp_drop_rate: float = 0.0,
+        # =============================
+        use_checkpoint: bool = False,
+        post_norm: bool = False,
+        **kwargs,
     ):
         super().__init__()
         self.ssm_branch = ssm_ratio > 0
@@ -1066,8 +1027,7 @@ class OSSBlock(nn.Module):
         if self.mlp_branch:
             self.norm2 = norm_layer(hidden_dim)
             mlp_hidden_dim = int(hidden_dim * mlp_ratio)
-            self.mlp = Mlp(in_features=hidden_dim, hidden_features=mlp_hidden_dim, act_layer=mlp_act_layer,
-                           drop=mlp_drop_rate, channels_first=False)
+            self.mlp = Mlp(in_features=hidden_dim, hidden_features=mlp_hidden_dim, act_layer=mlp_act_layer, drop=mlp_drop_rate, channels_first=False)
 
     def _forward(self, input: torch.Tensor):
         if self.ssm_branch:
@@ -1077,9 +1037,9 @@ class OSSBlock(nn.Module):
                 x = input + self.drop_path(self.op(self.norm(input)))
         if self.mlp_branch:
             if self.post_norm:
-                x = x + self.drop_path(self.norm2(self.mlp(x)))  # FFN
+                x = x + self.drop_path(self.norm2(self.mlp(x))) # FFN
             else:
-                x = x + self.drop_path(self.mlp(self.norm2(x)))  # FFN
+                x = x + self.drop_path(self.mlp(self.norm2(x))) # FFN
         return x
 
     def forward(self, input: torch.Tensor):
@@ -1088,23 +1048,63 @@ class OSSBlock(nn.Module):
         else:
             return self._forward(input)
 
+class AttentionBlock(nn.Module): #gate 注意力
+    def __init__(self, F_g, F_l, F_int):
+        super(AttentionBlock, self).__init__()
+        self.W_g = nn.Sequential(
+            nn.Conv2d(F_g, F_int, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(F_int)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, F_int, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(F_int)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(F_int, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, g, x):
+        g1 = self.W_g(g)
+        x1 = self.W_x(x)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        return x * psi
+
 
 class Decoder_Block(nn.Module):
-    """Basic block in decoder."""
+    """Basic block in decoder with attention."""
 
-    def __init__(self, in_channel, out_channel):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
 
-        assert out_channel == in_channel // 2, 'the out_channel is not in_channel//2 in decoder block'
+        assert out_channels == in_channels // 2, 'The out_channel is not in_channel//2 in decoder block'
+
         self.up = nn.Upsample(scale_factor=2, mode='nearest')
-        self.fuse = nn.Sequential(nn.Conv2d(in_channels=in_channel + out_channel, out_channels=out_channel,
-                                            kernel_size=1, padding=0, bias=False),
-                                  nn.BatchNorm2d(out_channel),
-                                  nn.ReLU(inplace=True),
-                                  )
+
+        # Attention block
+        self.attention = AttentionBlock(F_g=out_channels, F_l=out_channels, F_int=out_channels // 2)
+
+        self.fuse = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
 
     def forward(self, de, en):
         de = self.up(de)
+
+        # Apply attention mechanism before concatenation
+        en = self.attention(g=de, x=en)
+
         output = torch.cat([de, en], dim=1)
         output = self.fuse(output)
 
@@ -1258,7 +1258,6 @@ class RSM_SS(nn.Module):
             Permute(0, 2, 3, 1),
             (norm_layer(embed_dim) if patch_norm else nn.Identity()),
         )
-
     # 其中图像首先被划分为多个 patch，然后每个 patch 被线性投影到一个高维空间中，以供 Transformer 模型处理。
     @staticmethod
     def _make_downsample_v3(dim=96, out_dim=192, norm_layer=nn.LayerNorm):
@@ -1345,10 +1344,16 @@ class RSM_SS(nn.Module):
         return output
 
 
+
+
+
+
+
+
+
+
 from vit import ViT
 from rs_mamba_ss import *
-
-
 ##############################################################################################################################
 class EncoderBottleneck(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, base_width=64):
@@ -1390,12 +1395,9 @@ class EncoderBottleneck(nn.Module):
 
         return x
 
-
 class DecoderBottleneck(nn.Module):
-
     def __init__(self, in_channels, out_channels, scale_factor=2):
         super().__init__()
-
         self.upsample = nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True)
         self.layer = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
@@ -1405,13 +1407,10 @@ class DecoderBottleneck(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
-
     def forward(self, x, x_concat=None):
         x = self.upsample(x)
-
         if x_concat is not None:
             x = torch.cat([x_concat, x], dim=1)
-
         x = self.layer(x)
         return x
 
@@ -1473,7 +1472,7 @@ class Decoder(nn.Module):
         x = self.conv1(x)
 
         return x
-
+# 这个部分纯纯适配我去。
 
 class TransUNet(nn.Module):
     def __init__(self, img_dim, in_channels, out_channels, head_num, mlp_dim, block_num, patch_dim, class_num):
@@ -1638,7 +1637,6 @@ class RSM_SS2(nn.Module):
             Permute(0, 2, 3, 1),
             (norm_layer(embed_dim) if patch_norm else nn.Identity()),
         )
-
     # 其中图像首先被划分为多个 patch，然后每个 patch 被线性投影到一个高维空间中，以供 Transformer 模型处理。
     @staticmethod
     def _make_downsample_v3(dim=96, out_dim=192, norm_layer=nn.LayerNorm):
@@ -1725,21 +1723,299 @@ class RSM_SS2(nn.Module):
         return x1_1, x1_2, x1_3, x1_4
 
 
-class TransUNet222(nn.Module):
-    def __init__(self, img_dim, in_channels, out_channels, head_num, mlp_dim, block_num, patch_dim, class_num):
+class mygoUNet2(nn.Module):
+    def __init__(self,  dims,  in_channels=4,   class_num=1):
         super().__init__()
+        out_channels = dims[-1]  # 这里，dims 的最后一个元素是 768
+        self.class_num=1
+        # 使用RSM_SS中的编码器结构
+        self.encoder = RSM_SS2(
+            patch_size=4,  # 补丁大小，表示图像分块的大小
+            in_chans=4,  # 输入通道数，这里为4，表示输入图像有4个通道
+            num_classes=1,  # 类别数，通常用于分类任务，原来这写的是1000
+            depths=[2, 2, 9, 2],  # 每个阶段中的层数
+            dims=[96, 192, 384, 768],  # 每个阶段的通道维度
+            # =========================
+            ssm_d_state=16,  # SSM状态维度
+            ssm_ratio=2.0,  # SSM的比率参数
+            ssm_dt_rank="auto",  # SSM的时间维度秩，自动调整
+            ssm_act_layer="silu",  # SSM的激活函数类型，可以是"silu", "gelu", "relu"
+            ssm_conv=3,  # SSM中卷积核的大小
+            ssm_conv_bias=True,  # SSM中卷积层是否使用偏置项
+            ssm_drop_rate=0.0,  # SSM的dropout率
+            ssm_init="v0",  # SSM的初始化方式
+            forward_type="v2",  # SSM的前向传播类型
+            # =========================
+            mlp_ratio=4.0,  # MLP的扩展比率
+            mlp_act_layer="gelu",  # MLP的激活函数类型
+            mlp_drop_rate=0.0,  # MLP的dropout率
+            # =========================
+            drop_path_rate=0,  # 随机深度丢弃率
+            patch_norm=True,  # 是否对补丁进行归一化处理
+            norm_layer="LN",  # 归一化层的类型，可以选择"LN"或"BN"
+            use_checkpoint=False,  # 是否使用检查点机制
 
-        self.encoder = Encoder(img_dim, in_channels, out_channels,
-                               head_num, mlp_dim, block_num, patch_dim)
+        )
 
-        self.decoder = Decoder(out_channels, class_num)
+        # 使用RSM_SS的解码器结构
+        self.decoder = nn.Sequential(
+            DecoderBottleneck(1152, 384) , # 768 -> 384
+             DecoderBottleneck(576, 192),# 384 -> 192
+            DecoderBottleneck(288, 96), # 192 -> 96
+            DecoderBottleneck(96, 48),  # 96 -> 48
+
+            nn.Conv2d( 48 , 1, kernel_size=1)  # 48 -> class_num
+        )
 
     def forward(self, x):
-        x, x1, x2, x3 = self.encoder(x)
-        x = self.decoder(x, x1, x2, x3)
+        x1_1, x1_2, x1_3, x1_4 = self.encoder(x)
+        # x1_1 ([2, 96, 64, 64])
+        # x1_2 torch.Size([2, 192, 32, 32])
+        # x1_3 (torch.Size([2, 384, 16, 16]))
+        # x1_4 input size (torch.Size([2, 768, 8, 8]))
+        # print(x1_1.shape, x1_2.shape, x1_3.shape, x1_4.shape)
+        decode_3 = self.decoder[0](x1_4, x1_3)
+        decode_2 = self.decoder[1](decode_3, x1_2)
+        decode_1 = self.decoder[2](decode_2, x1_1)
+        decode_0 = self.decoder[3](decode_1)
 
-        return x
+        output = self.decoder[4](decode_0)
 
+        return  output
+
+
+
+class RSM_SS3(nn.Module):
+    def __init__(
+            self,
+            patch_size=4,  # 补丁大小，表示图像分块的大小
+            in_chans=4,  # 输入通道数，这里为4，表示输入图像有4个通道
+            num_classes=1,  # 类别数，通常用于分类任务，原来这写的是1000
+            depths=[2, 2, 9, 2],  # 每个阶段中的层数
+            dims=[96, 192, 384, 768],  # 每个阶段的通道维度
+            # =========================
+            ssm_d_state=16,  # SSM状态维度
+            ssm_ratio=2.0,  # SSM的比率参数
+            ssm_dt_rank="auto",  # SSM的时间维度秩，自动调整
+            ssm_act_layer="silu",  # SSM的激活函数类型，可以是"silu", "gelu", "relu"
+            ssm_conv=3,  # SSM中卷积核的大小
+            ssm_conv_bias=True,  # SSM中卷积层是否使用偏置项
+            ssm_drop_rate=0.0,  # SSM的dropout率
+            ssm_init="v0",  # SSM的初始化方式
+            forward_type="v2",  # SSM的前向传播类型
+            # =========================
+            mlp_ratio=4.0,  # MLP的扩展比率
+            mlp_act_layer="gelu",  # MLP的激活函数类型
+            mlp_drop_rate=0.0,  # MLP的dropout率
+            # =========================
+            drop_path_rate=0,  # 随机深度丢弃率
+            patch_norm=True,  # 是否对补丁进行归一化处理
+            norm_layer="LN",  # 归一化层的类型，可以选择"LN"或"BN"
+            use_checkpoint=False,  # 是否使用检查点机制
+            **kwargs,  # 其他扩展参数
+    ):
+        super().__init__()
+
+        self.num_classes = num_classes
+        self.num_layers = len(depths)
+        if isinstance(dims, int):
+            dims = [int(dims * 2 ** i_layer) for i_layer in range(self.num_layers)]
+        self.num_features = dims[-1]
+        self.dims = dims
+        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
+
+        _NORMLAYERS = dict(
+            ln=nn.LayerNorm,
+            bn=nn.BatchNorm2d,
+        )
+
+        _ACTLAYERS = dict(
+            silu=nn.SiLU,
+            gelu=nn.GELU,
+            relu=nn.ReLU,
+            sigmoid=nn.Sigmoid,
+        )
+
+        if isinstance(norm_layer, str) and norm_layer.lower() in ["ln"]:
+            norm_layer: nn.Module = _NORMLAYERS[norm_layer.lower()]
+
+        if isinstance(ssm_act_layer, str) and ssm_act_layer.lower() in ["silu", "gelu", "relu"]:
+            ssm_act_layer: nn.Module = _ACTLAYERS[ssm_act_layer.lower()]
+
+        if isinstance(mlp_act_layer, str) and mlp_act_layer.lower() in ["silu", "gelu", "relu"]:
+            mlp_act_layer: nn.Module = _ACTLAYERS[mlp_act_layer.lower()]
+
+        _make_patch_embed = self._make_patch_embed_v2
+        self.patch_embed = _make_patch_embed(in_chans, dims[0], patch_size, patch_norm, norm_layer)
+
+        _make_downsample = self._make_downsample_v3
+
+        # self.encoder_layers = [nn.ModuleList()] * self.num_layers
+        self.encoder_layers = []
+        self.decoder_layers = []
+
+        for i_layer in range(self.num_layers):
+            # downsample = _make_downsample(
+            #     self.dims[i_layer],
+            #     self.dims[i_layer + 1],
+            #     norm_layer=norm_layer,
+            # ) if (i_layer < self.num_layers - 1) else nn.Identity()
+
+            downsample = _make_downsample(
+                self.dims[i_layer - 1],
+                self.dims[i_layer],
+                norm_layer=norm_layer,
+            ) if (i_layer != 0) else nn.Identity()  # ZSJ 修改为i_layer != 0，也就是第一层不下采样，和论文的图保持一致，也方便我取出每个尺度处理好的特征
+
+            self.encoder_layers.append(self._make_layer(
+                dim=self.dims[i_layer],
+                drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
+                use_checkpoint=use_checkpoint,
+                norm_layer=norm_layer,
+                downsample=downsample,
+                # =================
+                ssm_d_state=ssm_d_state,
+                ssm_ratio=ssm_ratio,
+                ssm_dt_rank=ssm_dt_rank,
+                ssm_act_layer=ssm_act_layer,
+                ssm_conv=ssm_conv,
+                ssm_conv_bias=ssm_conv_bias,
+                ssm_drop_rate=ssm_drop_rate,
+                ssm_init=ssm_init,
+                forward_type=forward_type,
+                # =================
+                mlp_ratio=mlp_ratio,
+                mlp_act_layer=mlp_act_layer,
+                mlp_drop_rate=mlp_drop_rate,
+            ))
+            if i_layer != 0:
+                self.decoder_layers.append(
+                    Decoder_Block(in_channel=self.dims[i_layer], out_channel=self.dims[i_layer - 1]))
+
+        self.encoder_block1, self.encoder_block2, self.encoder_block3, self.encoder_block4 = self.encoder_layers
+        self.deocder_block1, self.deocder_block2, self.deocder_block3 = self.decoder_layers
+
+        self.upsample_x4 = nn.Sequential(
+            nn.Conv2d(self.dims[0], self.dims[0] // 2, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(self.dims[0] // 2),
+            nn.ReLU(inplace=True),
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(self.dims[0] // 2, 8, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(8),
+            nn.ReLU(inplace=True),
+            nn.UpsamplingBilinear2d(scale_factor=2)
+        )
+        self.conv_out_seg = nn.Conv2d(8, 1, kernel_size=7, stride=1, padding=3)
+
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m: nn.Module):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+
+    @staticmethod
+    def _make_patch_embed_v2(in_chans=4, embed_dim=96, patch_size=4, patch_norm=True,
+                             norm_layer=nn.LayerNorm):  # 修改图片通道数在这里改
+        assert patch_size == 4
+        return nn.Sequential(
+            nn.Conv2d(in_chans, embed_dim // 2, kernel_size=3, stride=2, padding=1),
+            (Permute(0, 2, 3, 1) if patch_norm else nn.Identity()),
+            (norm_layer(embed_dim // 2) if patch_norm else nn.Identity()),
+            (Permute(0, 3, 1, 2) if patch_norm else nn.Identity()),
+            nn.GELU(),
+            nn.Conv2d(embed_dim // 2, embed_dim, kernel_size=3, stride=2, padding=1),
+            Permute(0, 2, 3, 1),
+            (norm_layer(embed_dim) if patch_norm else nn.Identity()),
+        )
+    # 其中图像首先被划分为多个 patch，然后每个 patch 被线性投影到一个高维空间中，以供 Transformer 模型处理。
+    @staticmethod
+    def _make_downsample_v3(dim=96, out_dim=192, norm_layer=nn.LayerNorm):
+        return nn.Sequential(
+            Permute(0, 3, 1, 2),
+            nn.Conv2d(dim, out_dim, kernel_size=3, stride=2, padding=1),
+            Permute(0, 2, 3, 1),
+            norm_layer(out_dim),
+        )
+
+    @staticmethod
+    def _make_layer(
+            dim=96,
+            drop_path=[0, 0],
+            use_checkpoint=False,
+            norm_layer=nn.LayerNorm,
+            downsample=nn.Identity(),
+            # ===========================
+            ssm_d_state=16,
+            ssm_ratio=2.0,
+            ssm_dt_rank="auto",
+            ssm_act_layer=nn.SiLU,
+            ssm_conv=3,
+            ssm_conv_bias=True,
+            ssm_drop_rate=0.0,
+            ssm_init="v0",
+            forward_type="v2",
+            # ===========================
+            mlp_ratio=4.0,
+            mlp_act_layer=nn.GELU,
+            mlp_drop_rate=0.0,
+            **kwargs,
+    ):
+        depth = len(drop_path)
+        blocks = []
+        for d in range(depth):
+            blocks.append(OSSBlock(
+                hidden_dim=dim,
+                drop_path=drop_path[d],
+                norm_layer=norm_layer,
+                ssm_d_state=ssm_d_state,
+                ssm_ratio=ssm_ratio,
+                ssm_dt_rank=ssm_dt_rank,
+                ssm_act_layer=ssm_act_layer,
+                ssm_conv=ssm_conv,
+                ssm_conv_bias=ssm_conv_bias,
+                ssm_drop_rate=ssm_drop_rate,
+                ssm_init=ssm_init,
+                forward_type=forward_type,
+                mlp_ratio=mlp_ratio,
+                mlp_act_layer=mlp_act_layer,
+                mlp_drop_rate=mlp_drop_rate,
+                use_checkpoint=use_checkpoint,
+            ))
+
+        return nn.Sequential(OrderedDict(
+            # ZSJ 把downsample放到前面来，方便我取出encoder中每个尺度处理好的图像，而不是刚刚下采样完的图像
+            downsample=downsample,
+            blocks=nn.Sequential(*blocks, ),
+        ))
+
+    def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
+
+        x1 = self.patch_embed(x1)  # 64x64, 96个通道
+
+        x1_1 = self.encoder_block1(x1)  # 64x64, 96个通道
+        x1_2 = self.encoder_block2(x1_1)  # 32x32, 192个通道
+        x1_3 = self.encoder_block3(x1_2)  # 16x16, 384个通道
+        x1_4 = self.encoder_block4(x1_3)  # 8x8, 768个通道
+
+        # 在通过编码器后，特征图的排列可能不符合解码器的输入要求，因此需要进行重排
+        x1_1 = rearrange(x1_1, "b h w c -> b c h w").contiguous()
+        x1_2 = rearrange(x1_2, "b h w c -> b c h w").contiguous()
+        x1_3 = rearrange(x1_3, "b h w c -> b c h w").contiguous()
+        x1_4 = rearrange(x1_4, "b h w c -> b c h w").contiguous()
+        #
+        decode_3 = self.deocder_block3(x1_4, x1_3)  # 16x16, 384个通道
+        decode_2 = self.deocder_block2(decode_3, x1_2)  # 32x32, 192个通道
+        decode_1 = self.deocder_block1(decode_2, x1_1)  # 64x64, 96个通道
+
+        output = self.upsample_x4(decode_1)  # 256x256, 8个通道
+        output = self.conv_out_seg(output)  # 输出 256x256, 1个通道
+
+        return output
 
 
 

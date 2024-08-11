@@ -1055,7 +1055,7 @@ class Decoder_Block(nn.Module):
 
         assert out_channels == in_channels // 2, 'the out_channel is not in_channel//2 in decoder block'
         self.up = nn.Upsample(scale_factor=2, mode='nearest')
-        self.fuse1   = nn.Sequential(
+        self.fuse    = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
@@ -1719,7 +1719,7 @@ class mygoUNet2(nn.Module):
         )
 
         # 使用RSM_SS的解码器结构
-        self.decoder = nn.Sequential(
+        self.   decoder = nn.Sequential(
             DecoderBottleneck(1152, 384) , # 768 -> 384
              DecoderBottleneck(576, 192),# 384 -> 192
             DecoderBottleneck(288, 96), # 192 -> 96
