@@ -1438,7 +1438,6 @@ class Decoder(nn.Module):
         x = self.conv1(x)
 
         return x
-# 这个部分纯纯适配我去。
 
 class TransUNet(nn.Module):
     def __init__(self, img_dim, in_channels, out_channels, head_num, mlp_dim, block_num, patch_dim, class_num):

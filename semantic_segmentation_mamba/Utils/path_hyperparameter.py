@@ -2,7 +2,7 @@ class Path_Hyperparameter:
     random_seed = 42  # 随机种子
 
     # 训练超参数
-    epochs: int = 600  # 训练轮数
+    epochs: int = 200  # 训练轮数
     batch_size: int =  2  # 批次大小
     inference_ratio = 1 # 验证和测试时的批次大小为训练批次大小的倍数
     learning_rate: float = 1e-4  # 学习率
