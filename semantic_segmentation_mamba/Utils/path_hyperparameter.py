@@ -2,7 +2,7 @@ class Path_Hyperparameter:
     random_seed = 42  # 随机种子
 
     # 训练超参数
-    epochs: int = 200  # 训练轮数
+    epochs: int = 600  # 训练轮数
     batch_size: int =  2  # 批次大小
     inference_ratio = 1 # 验证和测试时的批次大小为训练批次大小的倍数
     learning_rate: float = 1e-4  # 学习率
@@ -15,18 +15,19 @@ class Path_Hyperparameter:
     max_norm: float = 20  # 梯度裁剪的最大范数。限制梯度的最大范数，以防止梯度爆炸
 
     # 评估和测试超参数
-    evaluate_epoch: int = 0  # 训练多少轮后开始评估。即前面不做任何的评估，第十轮开始
+    evaluate_epoch: int = 0  # 训练多少轮后开始评估。即前面不做任何的评估，  默认 0
     evaluate_inteval: int = 1  # 每多少轮进行一次评估
     test_epoch: int = 101  # 训练多少轮后开始测试
     stage_epoch = [0, 0, 0, 0, 0]  # 每个阶段后调整学习率
     save_checkpoint: bool = False  # 是否保存模型检查点
-    save_interval: int = 50 # 每多少轮保存一次检查点
+    save_interval: int = 50  # 每多少轮保存一次检查点50
     save_best_model: bool = True  # 是否保存最佳模型
 
     # 模型超参数（mamba模型的）
     # RSM_SS tiny
     drop_path_rate = 0  # Drop path 比率。通过随机地丢弃网络中的一些路径，可以使模型在每次前向传播中使用不同的路径组合，从而迫使模型学习更鲁棒的特征
-    dims = 96  # 维度？
+    # dims = 96  # 维度？
+    dims = [96, 192, 384, 768]
     depths = [2, 2, 9, 2]  # 每个阶段的深度,原本是2292，加深后效果增加不显著并且训练机器极其慢
     ssm_d_state = 16  # SSM 状态维度
     ssm_dt_rank = "auto"  # SSM Dt 排名。Dt 矩阵的秩决定了状态转移过程中可用的独立信息量。用于指定或自动确定状态空间模型中 Dt 矩阵的秩

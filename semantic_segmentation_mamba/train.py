@@ -1,13 +1,13 @@
 import sys  # 系统特定参数和函数
 import time  # 时间相关函数
-import ipdb  # 交互式 Python 调试器
+# import ipdb  # 交互式 Python 调试器
+import torch  # PyTorch 主库
 import numpy as np  # 数值计算库
 from torch import optim  # PyTorch 的优化器模块
 import torchvision.transforms as T  # 计算机视觉数据处理库
 from torch.utils.data import DataLoader  # 数据加载和批处理工具
 from Utils.data_loading import BasicDataset  # 数据集加载工具
 from Utils.path_hyperparameter import ph  # 路径和超参数配置
-import torch  # PyTorch 主库
 from Utils.losses import FCCDN_loss_without_seg  # 损失函数
 import os  # 操作系统相关函数
 import logging  # 日志记录模块
@@ -16,8 +16,8 @@ import wandb  # Weights and Biases，实验跟踪和可视化工具
 from rs_mamba_ss import RSM_SS  # 变化检测模型（mamba模型 ）
 from torchmetrics import MetricCollection, Accuracy, Precision, Recall, F1Score, JaccardIndex  # 评估指标工具
 from Utils.utils import train_val_test # 训练和验证函数
-
-# from BaseUnet import UNet
+from mygonet import mygoUNet2
+from BaseUnet import UNet
 
 
 # 使用随机种子可以确保每次运行代码时生成的随机数序列相同，从而得到相同的结果
@@ -59,7 +59,7 @@ def train_net(dataset_name):
                        prefetch_factor=5,
                        persistent_workers=True)
     train_loader = DataLoader(train_dataset, shuffle=True, drop_last=False, batch_size=ph.batch_size, **loader_args)
-    val_loader = DataLoader(val_dataset, shuffle=False, drop_last=False, batch_size=32, **loader_args)
+    val_loader = DataLoader(val_dataset, shuffle=False, drop_last=False, batch_size=1, **loader_args)
 
     # 初始化日志记录
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -85,8 +85,8 @@ def train_net(dataset_name):
     ''')
 
     # 设置模型、优化器、预热调度器、学习率调度器、损失函数和其他东西
-
-    net = RSM_SS(dims=ph.dims, depths=ph.depths, ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank, ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version, patchembed_version=ph.patchembed_version)
+    net= mygoUNet2(dims=ph.dims)
+    # net = RSM_SS(dims=ph.dims, depths=ph.depths, ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank, ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version, patchembed_version=ph.patchembed_version)
     # net = UNet(n_channels=4,n_classes=1,bilinear=True)  # 使用 BaseUNet（经典Unet模型）
     net = net.to(device=device)
     # optimizer = optim.AdamW(net.parameters(), lr=ph.learning_rate, weight_decay=ph.weight_decay) # AdamW 优化器
