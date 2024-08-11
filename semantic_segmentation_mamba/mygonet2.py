@@ -1730,7 +1730,8 @@ class mygoUNet2(nn.Module):
             DecoderBottleneck(288, 96), # 192 -> 96
             DecoderBottleneck(96, 48),  # 96 -> 48
 
-            nn.Conv2d( 48 , 1, kernel_size=1)  # 48 -> class_num
+            DecoderBottleneck(48, 24),
+            nn.Conv2d( 24 , 1, kernel_size=1)  # 48 -> class_num
         )
 
     def forward(self, x):
@@ -1743,9 +1744,10 @@ class mygoUNet2(nn.Module):
         decode_3 = self.decoder[0](x1_4, x1_3)
         decode_2 = self.decoder[1](decode_3, x1_2)
         decode_1 = self.decoder[2](decode_2, x1_1)
-        decode_0 = self.decoder[3](decode_1)
+        output = self.decoder[3](decode_1)
+        output = self.decoder[4](output)
 
-        output = self.decoder[4](decode_0)
+        output = self.decoder[5](output)
 
         return  output
 
