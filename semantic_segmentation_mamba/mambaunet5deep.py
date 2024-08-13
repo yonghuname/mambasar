@@ -1252,7 +1252,7 @@ class mambaunet5deepnet(nn.Module):
         self.encoder_block1, self.encoder_block2, self.encoder_block3, self.encoder_block4 ,self.encoder_block5= self.encoder_layers
         self.deocder_block1, self.deocder_block2, self.deocder_block3,self.deocder_block4 = self.decoder_layers
 
-        self.upsample_x4 = nn.Sequential(
+        self.upsample_x2 = nn.Sequential(
             nn.Conv2d(self.dims[0], self.dims[0] // 2, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(self.dims[0] // 2),
             nn.ReLU(inplace=True),
@@ -1413,12 +1413,12 @@ class mambaunet5deepnet(nn.Module):
         x1_4 = rearrange(x1_4, "b h w c -> b c h w").contiguous()
         x1_5 = rearrange(x1_5, "b h w c -> b c h w").contiguous()
         #
-        decode_4 = self.deocder_block4(x1_5,x1_3)
+        decode_4 = self.deocder_block4(x1_5,x1_4)
         decode_3 = self.deocder_block3(decode_4, x1_3)  # 16x16, 384个通道
         decode_2 = self.deocder_block2(decode_3, x1_2)  # 32x32, 192个通道
         decode_1 = self.deocder_block1(decode_2, x1_1)  # 64x64, 96个通道
 
-        output = self.upsample_x4(decode_1)  # 256x256, 8个通道
+        output = self.upsample_x2(decode_1)  # 256x256, 8个通道
         output = self.conv_out_seg(output)  # 输出 256x256, 1个通道
 
         return output
