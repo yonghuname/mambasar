@@ -3,7 +3,7 @@ class Path_Hyperparameter:
 
     # 训练超参数
     epochs: int = 200  # 训练轮数
-    batch_size: int =  16  # 批次大小
+    batch_size: int = 8 # 批次大小
     inference_ratio = 1 # 验证和测试时的批次大小为训练批次大小的倍数
     learning_rate: float = 1e-4  # 学习率
     factor = 0.1  # 学习率衰减因子
