@@ -1282,76 +1282,15 @@ class TransUNet(nn.Module):
 
 
 
-class mygoUNet2(nn.Module):
-    def __init__(self,  dims,  in_channels=4,   class_num=1):
-        super().__init__()
-        out_channels = dims[-1]  # 这里，dims 的最后一个元素是 768
-        self.class_num=1
-        # 使用RSM_SS中的编码器结构
-        self.encoder = RSM_SS3(
-            patch_size=4,  # 补丁大小，表示图像分块的大小
-            in_chans=4,  # 输入通道数，这里为4，表示输入图像有4个通道
-            num_classes=1,  # 类别数，通常用于分类任务，原来这写的是1000
-            depths=[2, 2, 9, 2],  # 每个阶段中的层数
-            dims=[96, 192, 384, 768],  # 每个阶段的通道维度
-            # =========================
-            ssm_d_state=16,  # SSM状态维度
-            ssm_ratio=2.0,  # SSM的比率参数
-            ssm_dt_rank="auto",  # SSM的时间维度秩，自动调整
-            ssm_act_layer="silu",  # SSM的激活函数类型，可以是"silu", "gelu", "relu"
-            ssm_conv=3,  # SSM中卷积核的大小
-            ssm_conv_bias=True,  # SSM中卷积层是否使用偏置项
-            ssm_drop_rate=0.0,  # SSM的dropout率
-            ssm_init="v0",  # SSM的初始化方式
-            forward_type="v2",  # SSM的前向传播类型
-            # =========================
-            mlp_ratio=4.0,  # MLP的扩展比率
-            mlp_act_layer="gelu",  # MLP的激活函数类型
-            mlp_drop_rate=0.0,  # MLP的dropout率
-            # =========================
-            drop_path_rate=0,  # 随机深度丢弃率
-            patch_norm=True,  # 是否对补丁进行归一化处理
-            norm_layer="LN",  # 归一化层的类型，可以选择"LN"或"BN"
-            use_checkpoint=False,  # 是否使用检查点机制
 
-        )
-
-        # 使用RSM_SS的解码器结构
-        self.decoder = nn.Sequential(
-            DecoderBottleneck(1152, 384) , # 768 -> 384
-             DecoderBottleneck(576, 192),# 384 -> 192
-            DecoderBottleneck(288, 96), # 192 -> 96
-            DecoderBottleneck(96, 48),  # 96 -> 48
-
-            nn.Conv2d( 48 , 1, kernel_size=1)  # 48 -> class_num
-        )
-
-    def forward(self, x):
-        x1_1, x1_2, x1_3, x1_4 = self.encoder(x)
-        # x1_1 ([2, 96, 64, 64])
-        # x1_2 torch.Size([2, 192, 32, 32])
-        # x1_3 (torch.Size([2, 384, 16, 16]))
-        # x1_4 input size (torch.Size([2, 768, 8, 8]))
-        # print(x1_1.shape, x1_2.shape, x1_3.shape, x1_4.shape)
-        decode_3 = self.decoder[0](x1_4, x1_3)
-        decode_2 = self.decoder[1](decode_3, x1_2)
-        decode_1 = self.decoder[2](decode_2, x1_1)
-        decode_0 = self.decoder[3](decode_1)
-
-        output = self.decoder[4](decode_0)
-
-        return  output
-
-
-
-class RSM_SS2hw(nn.Module):
+class mambaunet5deepnet(nn.Module):
     def __init__(
             self,
             patch_size=4,  # 补丁大小，表示图像分块的大小
             in_chans=4,  # 输入通道数，这里为4，表示输入图像有4个通道
             num_classes=1,  # 类别数，通常用于分类任务，原来这写的是1000
-            depths=[2, 2, 9, 2],  # 每个阶段中的层数
-            dims=[96, 192, 384, 768],  # 每个阶段的通道维度
+            depths=[5, 5, 5,5,5],  # 每个阶段中的层数
+            dims=[96, 192, 384, 768,14],  # 每个阶段的通道维度
             # =========================
             ssm_d_state=16,  # SSM状态维度
             ssm_ratio=2.0,  # SSM的比率参数
@@ -1374,7 +1313,7 @@ class RSM_SS2hw(nn.Module):
             **kwargs,  # 其他扩展参数
     ):
         super().__init__()
-        print("mamba改v2 RSM_SS2hw  init")
+        print("mambaunet5deepnet  init")
         self.num_classes = num_classes
         self.num_layers = len(depths)
         if isinstance(dims, int):
