@@ -1534,7 +1534,7 @@ class RSM_SS2hw(nn.Module):
         ))
 
     def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
-        print(f"Input: {x1.shape}")
+        print(f"Input             : {x1.shape}")
 
         x1 = self.patch_embed(x1)  # 64x64, 96个通道
         print(f"After patch_embed: {x1.shape}")
