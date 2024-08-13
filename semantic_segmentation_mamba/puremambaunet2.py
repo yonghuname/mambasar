@@ -1463,7 +1463,7 @@ class RSM_SS2hw(nn.Module):
                              norm_layer=nn.LayerNorm):  # 修改图片通道数在这里改
         assert patch_size == 4
         return nn.Sequential(
-            nn.Conv2d(in_chans, embed_dim // 2, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(in_chans, embed_dim // 2, kernel_size=3, stride=1, padding=1),
             (Permute(0, 2, 3, 1) if patch_norm else nn.Identity()),
             (norm_layer(embed_dim // 2) if patch_norm else nn.Identity()),
             (Permute(0, 3, 1, 2) if patch_norm else nn.Identity()),
