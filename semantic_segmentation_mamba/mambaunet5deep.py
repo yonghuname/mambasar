@@ -1390,8 +1390,8 @@ class mambaunet5deepnet(nn.Module):
                 self.decoder_layers.append(
                     Decoder_Block(in_channel=self.dims[i_layer], out_channel=self.dims[i_layer - 1]))
 
-        self.encoder_block1, self.encoder_block2, self.encoder_block3, self.encoder_block4 = self.encoder_layers
-        self.deocder_block1, self.deocder_block2, self.deocder_block3 = self.decoder_layers
+        self.encoder_block1, self.encoder_block2, self.encoder_block3, self.encoder_block4 ,self.encoder_block5= self.encoder_layers
+        self.deocder_block1, self.deocder_block2, self.deocder_block3,self.deocder_block3 = self.decoder_layers
 
         self.upsample_x4 = nn.Sequential(
             nn.Conv2d(self.dims[0], self.dims[0] // 2, kernel_size=3, stride=1, padding=1),
@@ -1538,21 +1538,24 @@ class mambaunet5deepnet(nn.Module):
     #     return output
 
     def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
+# 通道都变了，修改注释记得
+        x1 = self.patch_embed(x1)  # 128x128, 96个通道
 
-        x1 = self.patch_embed(x1)  # 64x64, 96个通道
+        x1_1 = self.encoder_block1(x1)  # 128x128   96个通道
+        x1_2 = self.encoder_block2(x1_1)  # 64x64,, 192个通道
+        x1_3 = self.encoder_block3(x1_2)  # 32x32  384个通道
+        x1_4 = self.encoder_block4(x1_3)  # 16*16 768个通道
 
-        x1_1 = self.encoder_block1(x1)  # 64x64, 96个通道
-        x1_2 = self.encoder_block2(x1_1)  # 32x32, 192个通道
-        x1_3 = self.encoder_block3(x1_2)  # 16x16, 384个通道
-        x1_4 = self.encoder_block4(x1_3)  # 8x8, 768个通道
-
+        x1_5 = self.encoder_block4(x1_4)  # 8x8, 768个通道
         # 在通过编码器后，特征图的排列可能不符合解码器的输入要求，因此需要进行重排
         x1_1 = rearrange(x1_1, "b h w c -> b c h w").contiguous()
         x1_2 = rearrange(x1_2, "b h w c -> b c h w").contiguous()
         x1_3 = rearrange(x1_3, "b h w c -> b c h w").contiguous()
         x1_4 = rearrange(x1_4, "b h w c -> b c h w").contiguous()
+        x1_5 = rearrange(x1_5, "b h w c -> b c h w").contiguous()
         #
-        decode_3 = self.deocder_block3(x1_4, x1_3)  # 16x16, 384个通道
+        decode_4 = self.decoder_block4(x1_5,x1_3)
+        decode_3 = self.deocder_block3(decode_4, x1_3)  # 16x16, 384个通道
         decode_2 = self.deocder_block2(decode_3, x1_2)  # 32x32, 192个通道
         decode_1 = self.deocder_block1(decode_2, x1_1)  # 64x64, 96个通道
 
