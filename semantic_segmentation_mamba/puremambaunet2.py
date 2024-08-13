@@ -1534,28 +1534,74 @@ class RSM_SS3(nn.Module):
         ))
 
     def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
+        print(f"Input: {x1.shape}")
 
         x1 = self.patch_embed(x1)  # 64x64, 96个通道
+        print(f"After patch_embed: {x1.shape}")
 
         x1_1 = self.encoder_block1(x1)  # 64x64, 96个通道
+        print(f"After encoder_block1: {x1_1.shape}")
+
         x1_2 = self.encoder_block2(x1_1)  # 32x32, 192个通道
+        print(f"After encoder_block2: {x1_2.shape}")
+
         x1_3 = self.encoder_block3(x1_2)  # 16x16, 384个通道
+        print(f"After encoder_block3: {x1_3.shape}")
+
         x1_4 = self.encoder_block4(x1_3)  # 8x8, 768个通道
+        print(f"After encoder_block4: {x1_4.shape}")
 
         # 在通过编码器后，特征图的排列可能不符合解码器的输入要求，因此需要进行重排
         x1_1 = rearrange(x1_1, "b h w c -> b c h w").contiguous()
         x1_2 = rearrange(x1_2, "b h w c -> b c h w").contiguous()
         x1_3 = rearrange(x1_3, "b h w c -> b c h w").contiguous()
         x1_4 = rearrange(x1_4, "b h w c -> b c h w").contiguous()
-        #
+
+        print(f"After rearrange x1_1: {x1_1.shape}")
+        print(f"After rearrange x1_2: {x1_2.shape}")
+        print(f"After rearrange x1_3: {x1_3.shape}")
+        print(f"After rearrange x1_4: {x1_4.shape}")
+
         decode_3 = self.deocder_block3(x1_4, x1_3)  # 16x16, 384个通道
+        print(f"After decoder_block3: {decode_3.shape}")
+
         decode_2 = self.deocder_block2(decode_3, x1_2)  # 32x32, 192个通道
+        print(f"After decoder_block2: {decode_2.shape}")
+
         decode_1 = self.deocder_block1(decode_2, x1_1)  # 64x64, 96个通道
+        print(f"After decoder_block1: {decode_1.shape}")
 
         output = self.upsample_x4(decode_1)  # 256x256, 8个通道
+        print(f"After upsample_x4: {output.shape}")
+
         output = self.conv_out_seg(output)  # 输出 256x256, 1个通道
+        print(f"Final Output: {output.shape}")
 
         return output
+
+    # def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
+    #
+    #     x1 = self.patch_embed(x1)  # 64x64, 96个通道
+    #
+    #     x1_1 = self.encoder_block1(x1)  # 64x64, 96个通道
+    #     x1_2 = self.encoder_block2(x1_1)  # 32x32, 192个通道
+    #     x1_3 = self.encoder_block3(x1_2)  # 16x16, 384个通道
+    #     x1_4 = self.encoder_block4(x1_3)  # 8x8, 768个通道
+    #
+    #     # 在通过编码器后，特征图的排列可能不符合解码器的输入要求，因此需要进行重排
+    #     x1_1 = rearrange(x1_1, "b h w c -> b c h w").contiguous()
+    #     x1_2 = rearrange(x1_2, "b h w c -> b c h w").contiguous()
+    #     x1_3 = rearrange(x1_3, "b h w c -> b c h w").contiguous()
+    #     x1_4 = rearrange(x1_4, "b h w c -> b c h w").contiguous()
+    #     #
+    #     decode_3 = self.deocder_block3(x1_4, x1_3)  # 16x16, 384个通道
+    #     decode_2 = self.deocder_block2(decode_3, x1_2)  # 32x32, 192个通道
+    #     decode_1 = self.deocder_block1(decode_2, x1_1)  # 64x64, 96个通道
+    #
+    #     output = self.upsample_x4(decode_1)  # 256x256, 8个通道
+    #     output = self.conv_out_seg(output)  # 输出 256x256, 1个通道
+    #
+    #     return output
 
 
 
