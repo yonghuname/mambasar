@@ -1439,8 +1439,8 @@ class RSM_SS2hw(nn.Module):
             nn.Conv2d(self.dims[0], self.dims[0] // 2, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(self.dims[0] // 2),
             nn.ReLU(inplace=True),
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(self.dims[0] // 2, 8, kernel_size=3, stride=1, padding=1),
+            # nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(self.dims[0] , 8, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(8),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=2)
