@@ -89,7 +89,7 @@ def train_net(dataset_name):
     # net = RSM_SS2hw(dims=ph.dims, depths=ph.depths, ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,
     #              ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version,
     #              patchembed_version=ph.patchembed_version)
-    net = mambaunet5deepnet(depths=[5, 5, 5,5,5],      dims=[96, 192, 384, 768,14], ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,
+    net = mambaunet5deepnet(depths=[5, 5, 5,5 ,5],      dims=[96, 192, 384, 768,14], ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,
                  ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version,
                  patchembed_version=ph.patchembed_version)
     # net = RSM_SS(dims=ph.dims, depths=ph.depths, ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,  ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version,  patchembed_version=ph.patchembed_version)
