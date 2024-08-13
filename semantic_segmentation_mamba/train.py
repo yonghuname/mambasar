@@ -16,9 +16,9 @@ import wandb  # Weights and Biases，实验跟踪和可视化工具
 from rs_mamba_ss import RSM_SS  # 变化检测模型（mamba模型 ）
 from torchmetrics import MetricCollection, Accuracy, Precision, Recall, F1Score, JaccardIndex  # 评估指标工具
 from Utils.utils import train_val_test # 训练和验证函数
-from puremambaunet2 import mygoUNet2,RSM_SS3
+from puremambaunet2 import mygoUNet2,RSM_SS2hw
 from BaseUnet import UNet
-# from puremambaunet2 import *
+
 
 # 使用随机种子可以确保每次运行代码时生成的随机数序列相同，从而得到相同的结果
 def random_seed(SEED):
@@ -86,11 +86,11 @@ def train_net(dataset_name):
 
     # 设置模型、优化器、预热调度器、学习率调度器、损失函数和其他东西
     # net= mygoUNet2(dims=ph.dims)
-    # net = RSM_SSv201(dims=ph.dims, depths=ph.depths, ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,
-    #              ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version,
-    #              patchembed_version=ph.patchembed_version)
+    net = RSM_SS2hw(dims=ph.dims, depths=ph.depths, ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,
+                 ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version,
+                 patchembed_version=ph.patchembed_version)
 
-    net = RSM_SS(dims=ph.dims, depths=ph.depths, ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,  ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version,  patchembed_version=ph.patchembed_version)
+    # net = RSM_SS(dims=ph.dims, depths=ph.depths, ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,  ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version,  patchembed_version=ph.patchembed_version)
     # net = UNet(n_channels=4,n_classes=1,bilinear=True)  # 使用 BaseUNet（经典Unet模型）
     net = net.to(device=device)
     # optimizer = optim.AdamW(net.parameters(), lr=ph.learning_rate, weight_decay=ph.weight_decay) # AdamW 优化器

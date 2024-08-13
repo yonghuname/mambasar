@@ -1325,7 +1325,7 @@ class mygoUNet2(nn.Module):
 
 
 
-class RSM_SS3(nn.Module):
+class RSM_SS2hw(nn.Module):
     def __init__(
             self,
             patch_size=4,  # 补丁大小，表示图像分块的大小
@@ -1355,7 +1355,7 @@ class RSM_SS3(nn.Module):
             **kwargs,  # 其他扩展参数
     ):
         super().__init__()
-
+        print("mamba改v2 RSM_SS2hw  init")
         self.num_classes = num_classes
         self.num_layers = len(depths)
         if isinstance(dims, int):
