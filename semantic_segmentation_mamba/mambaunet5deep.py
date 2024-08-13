@@ -1250,7 +1250,7 @@ class mambaunet5deepnet(nn.Module):
                     Decoder_Block(in_channel=self.dims[i_layer], out_channel=self.dims[i_layer - 1]))
 
         self.encoder_block1, self.encoder_block2, self.encoder_block3, self.encoder_block4 ,self.encoder_block5= self.encoder_layers
-        self.deocder_block1, self.deocder_block2, self.deocder_block3,self.deocder_block3 = self.decoder_layers
+        self.deocder_block1, self.deocder_block2, self.deocder_block3,self.deocder_block4 = self.decoder_layers
 
         self.upsample_x4 = nn.Sequential(
             nn.Conv2d(self.dims[0], self.dims[0] // 2, kernel_size=3, stride=1, padding=1),
