@@ -1405,7 +1405,7 @@ class mambaunet5deepnet(nn.Module):
         x1_3 = self.encoder_block3(x1_2)  # 32x32  384个通道
         x1_4 = self.encoder_block4(x1_3)  # 16*16 768个通道
 
-        x1_5 = self.encoder_block4(x1_4)  # 8x8, 768个通道
+        x1_5 = self.encoder_block5(x1_4)  # 8x8, 768个通道
         # 在通过编码器后，特征图的排列可能不符合解码器的输入要求，因此需要进行重排
         x1_1 = rearrange(x1_1, "b h w c -> b c h w").contiguous()
         x1_2 = rearrange(x1_2, "b h w c -> b c h w").contiguous()
