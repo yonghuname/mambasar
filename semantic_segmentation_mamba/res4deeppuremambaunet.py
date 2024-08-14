@@ -1342,7 +1342,19 @@ class mygoUNet2(nn.Module):
 
         return  output
 
+class Residual(nn.Module):
+    def __init__(self, block, downsample=nn.Identity()):
+        super().__init__()
+        self.block = block
+        self.downsample = downsample
 
+    def forward(self, x):
+        identity = x
+        x = self.block(x)
+        if self.downsample != nn.Identity():
+            identity = self.downsample(identity)
+        x = x + identity  # Residual connection
+        return x
 
 class res4deepMambaunet(nn.Module):
     def __init__(
@@ -1578,7 +1590,7 @@ class res4deepMambaunet(nn.Module):
         depth = len(drop_path)
         blocks = []
         for d in range(depth):
-            blocks.append(OSSBlock(
+            block = OSSBlock(
                 hidden_dim=dim,
                 drop_path=drop_path[d],
                 norm_layer=norm_layer,
@@ -1595,25 +1607,13 @@ class res4deepMambaunet(nn.Module):
                 mlp_act_layer=mlp_act_layer,
                 mlp_drop_rate=mlp_drop_rate,
                 use_checkpoint=use_checkpoint,
-            ))
+            )
+            blocks.append(Residual(block, downsample if d == 0 else nn.Identity()))
 
         return nn.Sequential(OrderedDict(
             downsample=downsample,
             blocks=nn.Sequential(*blocks),
-            residual=nn.Conv2d(dim, dim, kernel_size=1, stride=1) if downsample != nn.Identity() else nn.Identity()
         ))
-
-    def forward(self, x: torch.Tensor):
-        identity = x
-        x = self.downsample(x)
-        x = self.blocks(x)
-
-        # Apply residual connection
-        if self.residual != nn.Identity():
-            identity = self.residual(identity)
-
-        x = x + identity  # Residual connection
-        return x
 
     def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
 
