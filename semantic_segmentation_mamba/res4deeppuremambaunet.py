@@ -1355,7 +1355,7 @@ class Residual(nn.Module):
             identity = self.downsample(identity)
         x = x + identity  # Residual connection
         return x
-
+#  全部oss都残差的网络 第二个应该是分层res连接的网络
 class res4deepMambaunet(nn.Module):
     def __init__(
             self,
