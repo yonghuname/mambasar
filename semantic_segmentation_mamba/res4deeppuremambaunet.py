@@ -1557,7 +1557,8 @@ class res4deepMambaunetv1(nn.Module):
                 mlp_drop_rate=mlp_drop_rate,
                 use_checkpoint=use_checkpoint,
             )
-            blocks.append(Residual(block, downsample if d == 0 else nn.Identity()))
+            # blocks.append(Residual(block, downsample if d == 0 else nn.Identity()))
+            blocks.append(block)
         return nn.Sequential(OrderedDict(
             # ZSJ 把downsample放到前面来，方便我取出encoder中每个尺度处理好的图像，而不是刚刚下采样完的图像
             downsample=downsample,
