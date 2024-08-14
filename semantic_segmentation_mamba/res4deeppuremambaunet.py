@@ -1355,8 +1355,8 @@ class Residual(nn.Module):
             identity = self.downsample(identity)
         x = x + identity  # Residual connection
         return x
-#  全部oss都残差的网络 第二个应该是分层res连接的网络
-class res4deepMambaunet(nn.Module):
+
+class RSM_SS2hw(nn.Module):
     def __init__(
             self,
             patch_size=4,  # 补丁大小，表示图像分块的大小
@@ -1386,7 +1386,7 @@ class res4deepMambaunet(nn.Module):
             **kwargs,  # 其他扩展参数
     ):
         super().__init__()
-        print("res4deepMambaunet init")
+        print("mamba改v2 RSM_SS2hw  init")
         self.num_classes = num_classes
         self.num_layers = len(depths)
         if isinstance(dims, int):
@@ -1539,58 +1539,7 @@ class res4deepMambaunet(nn.Module):
         depth = len(drop_path)
         blocks = []
         for d in range(depth):
-            blocks.append(OSSBlock(
-                hidden_dim=dim,
-                drop_path=drop_path[d],
-                norm_layer=norm_layer,
-                ssm_d_state=ssm_d_state,
-                ssm_ratio=ssm_ratio,
-                ssm_dt_rank=ssm_dt_rank,
-                ssm_act_layer=ssm_act_layer,
-                ssm_conv=ssm_conv,
-                ssm_conv_bias=ssm_conv_bias,
-                ssm_drop_rate=ssm_drop_rate,
-                ssm_init=ssm_init,
-                forward_type=forward_type,
-                mlp_ratio=mlp_ratio,
-                mlp_act_layer=mlp_act_layer,
-                mlp_drop_rate=mlp_drop_rate,
-                use_checkpoint=use_checkpoint,
-            ))
-
-        return nn.Sequential(OrderedDict(
-            # ZSJ 把downsample放到前面来，方便我取出encoder中每个尺度处理好的图像，而不是刚刚下采样完的图像
-            downsample=downsample,
-            blocks=nn.Sequential(*blocks, ),
-        ))
-
-    def _make_layer2(
-            self,
-            dim=96,
-            drop_path=[0, 0],
-            use_checkpoint=False,
-            norm_layer=nn.LayerNorm,
-            downsample=nn.Identity(),
-            # ===========================
-            ssm_d_state=16,
-            ssm_ratio=2.0,
-            ssm_dt_rank="auto",
-            ssm_act_layer=nn.SiLU,
-            ssm_conv=3,
-            ssm_conv_bias=True,
-            ssm_drop_rate=0.0,
-            ssm_init="v0",
-            forward_type="v2",
-            # ===========================
-            mlp_ratio=4.0,
-            mlp_act_layer=nn.GELU,
-            mlp_drop_rate=0.0,
-            **kwargs,
-    ):
-        depth = len(drop_path)
-        blocks = []
-        for d in range(depth):
-            block = OSSBlock(
+            block=OSSBlock(
                 hidden_dim=dim,
                 drop_path=drop_path[d],
                 norm_layer=norm_layer,
@@ -1609,11 +1558,12 @@ class res4deepMambaunet(nn.Module):
                 use_checkpoint=use_checkpoint,
             )
             blocks.append(Residual(block, downsample if d == 0 else nn.Identity()))
-
         return nn.Sequential(OrderedDict(
+            # ZSJ 把downsample放到前面来，方便我取出encoder中每个尺度处理好的图像，而不是刚刚下采样完的图像
             downsample=downsample,
-            blocks=nn.Sequential(*blocks),
+            blocks=nn.Sequential(*blocks, ),
         ))
+
 
     def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
 
@@ -1639,3 +1589,6 @@ class res4deepMambaunet(nn.Module):
 
         return output
 
+
+
+#  这个版本是 把下采样 第一次embed保留变大的版本 只有纯mamba 改尺寸的  1/2 HW
