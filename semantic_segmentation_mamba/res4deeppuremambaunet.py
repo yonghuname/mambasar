@@ -1374,7 +1374,7 @@ class res4deepMambaunet(nn.Module):
             **kwargs,  # 其他扩展参数
     ):
         super().__init__()
-        print("mamba改v2 RSM_SS2hw  init")
+        print("res4deepMambaunet init")
         self.num_classes = num_classes
         self.num_layers = len(depths)
         if isinstance(dims, int):
