@@ -1356,7 +1356,7 @@ class Residual(nn.Module):
         x = x + identity  # Residual connection
         return x
 
-class RSM_SS2hw(nn.Module):
+class res4deepMambaunet(nn.Module):
     def __init__(
             self,
             patch_size=4,  # 补丁大小，表示图像分块的大小
