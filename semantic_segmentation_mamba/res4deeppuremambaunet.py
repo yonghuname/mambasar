@@ -1513,58 +1513,58 @@ class res4deepMambaunet(nn.Module):
             norm_layer(out_dim),
         )
 
-    # @staticmethod
-    # def _make_layer(
-    #         dim=96,
-    #         drop_path=[0, 0],
-    #         use_checkpoint=False,
-    #         norm_layer=nn.LayerNorm,
-    #         downsample=nn.Identity(),
-    #         # ===========================
-    #         ssm_d_state=16,
-    #         ssm_ratio=2.0,
-    #         ssm_dt_rank="auto",
-    #         ssm_act_layer=nn.SiLU,
-    #         ssm_conv=3,
-    #         ssm_conv_bias=True,
-    #         ssm_drop_rate=0.0,
-    #         ssm_init="v0",
-    #         forward_type="v2",
-    #         # ===========================
-    #         mlp_ratio=4.0,
-    #         mlp_act_layer=nn.GELU,
-    #         mlp_drop_rate=0.0,
-    #         **kwargs,
-    # ):
-    #     depth = len(drop_path)
-    #     blocks = []
-    #     for d in range(depth):
-    #         blocks.append(OSSBlock(
-    #             hidden_dim=dim,
-    #             drop_path=drop_path[d],
-    #             norm_layer=norm_layer,
-    #             ssm_d_state=ssm_d_state,
-    #             ssm_ratio=ssm_ratio,
-    #             ssm_dt_rank=ssm_dt_rank,
-    #             ssm_act_layer=ssm_act_layer,
-    #             ssm_conv=ssm_conv,
-    #             ssm_conv_bias=ssm_conv_bias,
-    #             ssm_drop_rate=ssm_drop_rate,
-    #             ssm_init=ssm_init,
-    #             forward_type=forward_type,
-    #             mlp_ratio=mlp_ratio,
-    #             mlp_act_layer=mlp_act_layer,
-    #             mlp_drop_rate=mlp_drop_rate,
-    #             use_checkpoint=use_checkpoint,
-    #         ))
-    #
-    #     return nn.Sequential(OrderedDict(
-    #         # ZSJ 把downsample放到前面来，方便我取出encoder中每个尺度处理好的图像，而不是刚刚下采样完的图像
-    #         downsample=downsample,
-    #         blocks=nn.Sequential(*blocks, ),
-    #     ))
     @staticmethod
     def _make_layer(
+            dim=96,
+            drop_path=[0, 0],
+            use_checkpoint=False,
+            norm_layer=nn.LayerNorm,
+            downsample=nn.Identity(),
+            # ===========================
+            ssm_d_state=16,
+            ssm_ratio=2.0,
+            ssm_dt_rank="auto",
+            ssm_act_layer=nn.SiLU,
+            ssm_conv=3,
+            ssm_conv_bias=True,
+            ssm_drop_rate=0.0,
+            ssm_init="v0",
+            forward_type="v2",
+            # ===========================
+            mlp_ratio=4.0,
+            mlp_act_layer=nn.GELU,
+            mlp_drop_rate=0.0,
+            **kwargs,
+    ):
+        depth = len(drop_path)
+        blocks = []
+        for d in range(depth):
+            blocks.append(OSSBlock(
+                hidden_dim=dim,
+                drop_path=drop_path[d],
+                norm_layer=norm_layer,
+                ssm_d_state=ssm_d_state,
+                ssm_ratio=ssm_ratio,
+                ssm_dt_rank=ssm_dt_rank,
+                ssm_act_layer=ssm_act_layer,
+                ssm_conv=ssm_conv,
+                ssm_conv_bias=ssm_conv_bias,
+                ssm_drop_rate=ssm_drop_rate,
+                ssm_init=ssm_init,
+                forward_type=forward_type,
+                mlp_ratio=mlp_ratio,
+                mlp_act_layer=mlp_act_layer,
+                mlp_drop_rate=mlp_drop_rate,
+                use_checkpoint=use_checkpoint,
+            ))
+
+        return nn.Sequential(OrderedDict(
+            # ZSJ 把downsample放到前面来，方便我取出encoder中每个尺度处理好的图像，而不是刚刚下采样完的图像
+            downsample=downsample,
+            blocks=nn.Sequential(*blocks, ),
+        ))
+
+    def _make_layer2(
             self,
             dim=96,
             drop_path=[0, 0],
