@@ -1254,6 +1254,7 @@ class res4deepMambaunetv1(nn.Module):
             dims = [int(dims * 2 ** i_layer) for i_layer in range(self.num_layers)]
         self.num_features = dims[-1]
         self.dims = dims
+        # self.depths = depths
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
 
         _NORMLAYERS = dict(
@@ -1331,7 +1332,7 @@ class res4deepMambaunetv1(nn.Module):
 
             encoder_layer = EncoderLayer(
                 dim=self.dims[i_layer],
-                drop_path=dpr[sum(self.depths[:i_layer]):sum(self.depths[:i_layer + 1])],
+                drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
                 use_checkpoint=use_checkpoint,
                 norm_layer=norm_layer,
                 ssm_d_state=ssm_d_state,
