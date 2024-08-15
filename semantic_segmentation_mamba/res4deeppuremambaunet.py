@@ -1140,221 +1140,82 @@ class Decoder_Block(nn.Module):
         return output
 
 
-
-
-
-
-from rs_mamba_ss import *
-##############################################################################################################################
-class EncoderBottleneck(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1, base_width=64):
-        super().__init__()
-
+class DownsampleLayerV3(nn.Module):
+    def __init__(self, dim=96, out_dim=192, norm_layer=nn.LayerNorm):
+        super(DownsampleLayerV3, self).__init__()
         self.downsample = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
-            nn.BatchNorm2d(out_channels)
-        )
-
-        width = int(out_channels * (base_width / 64))
-
-        self.conv1 = nn.Conv2d(in_channels, width, kernel_size=1, stride=1, bias=False)
-        self.norm1 = nn.BatchNorm2d(width)
-
-        self.conv2 = nn.Conv2d(width, width, kernel_size=3, stride=2, groups=1, padding=1, dilation=1, bias=False)
-        self.norm2 = nn.BatchNorm2d(width)
-
-        self.conv3 = nn.Conv2d(width, out_channels, kernel_size=1, stride=1, bias=False)
-        self.norm3 = nn.BatchNorm2d(out_channels)
-
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x_down = self.downsample(x)
-
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu(x)
-
-        x = self.conv2(x)
-        x = self.norm2(x)
-        x = self.relu(x)
-
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = x + x_down
-        x = self.relu(x)
-
-        return x
-
-class DecoderBottleneck(nn.Module):
-    def __init__(self, in_channels, out_channels, scale_factor=2):
-        super().__init__()
-        self.upsample = nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=True)
-        self.layer = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
-    def forward(self, x, x_concat=None):
-        x = self.upsample(x)
-        if x_concat is not None:
-            x = torch.cat([x_concat, x], dim=1)
-        x = self.layer(x)
-        return x
-
-
-class Encoder(nn.Module):
-    def __init__(self, img_dim, in_channels, out_channels, head_num, mlp_dim, block_num, patch_dim):
-        super().__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=7, stride=2, padding=3, bias=False)
-        self.norm1 = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
-
-        self.encoder1 = EncoderBottleneck(out_channels, out_channels * 2, stride=2)
-        self.encoder2 = EncoderBottleneck(out_channels * 2, out_channels * 4, stride=2)
-        self.encoder3 = EncoderBottleneck(out_channels * 4, out_channels * 8, stride=2)
-
-        self.vit_img_dim = img_dim // patch_dim
-        self.vit = ViT(self.vit_img_dim, out_channels * 8, out_channels * 8,
-                       head_num, mlp_dim, block_num, patch_dim=1, classification=False)
-
-        self.conv2 = nn.Conv2d(out_channels * 8, 512, kernel_size=3, stride=1, padding=1)
-        self.norm2 = nn.BatchNorm2d(512)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x1 = self.relu(x)
-
-        x2 = self.encoder1(x1)
-        x3 = self.encoder2(x2)
-        x = self.encoder3(x3)
-
-        x = self.vit(x)
-        x = rearrange(x, "b (x y) c -> b c x y", x=self.vit_img_dim, y=self.vit_img_dim)
-
-        x = self.conv2(x)
-        x = self.norm2(x)
-        x = self.relu(x)
-
-        return x, x1, x2, x3
-
-
-class Decoder(nn.Module):
-    def __init__(self, out_channels, class_num):
-        super().__init__()
-
-        self.decoder1 = DecoderBottleneck(out_channels * 8, out_channels * 2)
-        self.decoder2 = DecoderBottleneck(out_channels * 4, out_channels)
-        self.decoder3 = DecoderBottleneck(out_channels * 2, int(out_channels * 1 / 2))
-        self.decoder4 = DecoderBottleneck(int(out_channels * 1 / 2), int(out_channels * 1 / 8))
-
-        self.conv1 = nn.Conv2d(int(out_channels * 1 / 8), class_num, kernel_size=1)
-
-    def forward(self, x, x1, x2, x3):
-        x = self.decoder1(x, x3)
-        x = self.decoder2(x, x2)
-        x = self.decoder3(x, x1)
-        x = self.decoder4(x)
-        x = self.conv1(x)
-
-        return x
-# 这个部分纯纯适配我去。
-
-class TransUNet(nn.Module):
-    def __init__(self, img_dim, in_channels, out_channels, head_num, mlp_dim, block_num, patch_dim, class_num):
-        super().__init__()
-
-        self.encoder = Encoder(img_dim, in_channels, out_channels,
-                               head_num, mlp_dim, block_num, patch_dim)
-
-        self.decoder = Decoder(out_channels, class_num)
-
-    def forward(self, x):
-        x, x1, x2, x3 = self.encoder(x)
-        x = self.decoder(x, x1, x2, x3)
-
-        return x
-
-
-
-class mygoUNet2(nn.Module):
-    def __init__(self,  dims,  in_channels=4,   class_num=1):
-        super().__init__()
-        out_channels = dims[-1]  # 这里，dims 的最后一个元素是 768
-        self.class_num=1
-        # 使用RSM_SS中的编码器结构
-        self.encoder = RSM_SS3(
-            patch_size=4,  # 补丁大小，表示图像分块的大小
-            in_chans=4,  # 输入通道数，这里为4，表示输入图像有4个通道
-            num_classes=1,  # 类别数，通常用于分类任务，原来这写的是1000
-            depths=[2, 2, 9, 2],  # 每个阶段中的层数
-            dims=[96, 192, 384, 768],  # 每个阶段的通道维度
-            # =========================
-            ssm_d_state=16,  # SSM状态维度
-            ssm_ratio=2.0,  # SSM的比率参数
-            ssm_dt_rank="auto",  # SSM的时间维度秩，自动调整
-            ssm_act_layer="silu",  # SSM的激活函数类型，可以是"silu", "gelu", "relu"
-            ssm_conv=3,  # SSM中卷积核的大小
-            ssm_conv_bias=True,  # SSM中卷积层是否使用偏置项
-            ssm_drop_rate=0.0,  # SSM的dropout率
-            ssm_init="v0",  # SSM的初始化方式
-            forward_type="v2",  # SSM的前向传播类型
-            # =========================
-            mlp_ratio=4.0,  # MLP的扩展比率
-            mlp_act_layer="gelu",  # MLP的激活函数类型
-            mlp_drop_rate=0.0,  # MLP的dropout率
-            # =========================
-            drop_path_rate=0,  # 随机深度丢弃率
-            patch_norm=True,  # 是否对补丁进行归一化处理
-            norm_layer="LN",  # 归一化层的类型，可以选择"LN"或"BN"
-            use_checkpoint=False,  # 是否使用检查点机制
-
-        )
-
-        # 使用RSM_SS的解码器结构
-        self.decoder = nn.Sequential(
-            DecoderBottleneck(1152, 384) , # 768 -> 384
-             DecoderBottleneck(576, 192),# 384 -> 192
-            DecoderBottleneck(288, 96), # 192 -> 96
-            DecoderBottleneck(96, 48),  # 96 -> 48
-
-            nn.Conv2d( 48 , 1, kernel_size=1)  # 48 -> class_num
+            Permute(0, 3, 1, 2),  # 将特征图维度从 (batch, height, width, channels) 转换为 (batch, channels, height, width)
+            nn.Conv2d(dim, out_dim, kernel_size=3, stride=2, padding=1),  # 进行降采样
+            Permute(0, 2, 3, 1),  # 将特征图维度还原为 (batch, height, width, channels)
+            norm_layer(out_dim),  # 进行归一化
         )
 
     def forward(self, x):
-        x1_1, x1_2, x1_3, x1_4 = self.encoder(x)
-        # x1_1 ([2, 96, 64, 64])
-        # x1_2 torch.Size([2, 192, 32, 32])
-        # x1_3 (torch.Size([2, 384, 16, 16]))
-        # x1_4 input size (torch.Size([2, 768, 8, 8]))
-        # print(x1_1.shape, x1_2.shape, x1_3.shape, x1_4.shape)
-        decode_3 = self.decoder[0](x1_4, x1_3)
-        decode_2 = self.decoder[1](decode_3, x1_2)
-        decode_1 = self.decoder[2](decode_2, x1_1)
-        decode_0 = self.decoder[3](decode_1)
+        return self.downsample(x)
 
-        output = self.decoder[4](decode_0)
-
-        return  output
 
 class Residual(nn.Module):
-    def __init__(self, block, downsample=nn.Identity()):
-        super().__init__()
-        self.block = block
-        self.downsample = downsample
+    def __init__(self, blocks):
+        super(Residual, self).__init__()
+        self.blocks = blocks
 
     def forward(self, x):
         identity = x
-        x = self.block(x)
-        if self.downsample != nn.Identity():
-            identity = self.downsample(identity)
-        x = x + identity  # Residual connection
-        return x
+        out = self.blocks(x)
+        out += identity  # 对整个 blocks 序列进行残差连接
+        return out
+
+
+class EncoderLayer(nn.Module):
+    def __init__(
+            self,
+            dim=96,
+            drop_path=[0, 0],
+            use_checkpoint=False,
+            norm_layer=nn.LayerNorm,
+            ssm_d_state=16,
+            ssm_ratio=2.0,
+            ssm_dt_rank="auto",
+            ssm_act_layer=nn.SiLU,
+            ssm_conv=3,
+            ssm_conv_bias=True,
+            ssm_drop_rate=0.0,
+            ssm_init="v0",
+            forward_type="v2",
+            mlp_ratio=4.0,
+            mlp_act_layer=nn.GELU,
+            mlp_drop_rate=0.0,
+            **kwargs
+    ):
+        super(EncoderLayer, self).__init__()
+
+        depth = len(drop_path)
+        blocks = []
+        for d in range(depth):
+            block = OSSBlock(
+                hidden_dim=dim,
+                drop_path=drop_path[d],
+                norm_layer=norm_layer,
+                ssm_d_state=ssm_d_state,
+                ssm_ratio=ssm_ratio,
+                ssm_dt_rank=ssm_dt_rank,
+                ssm_act_layer=ssm_act_layer,
+                ssm_conv=ssm_conv,
+                ssm_conv_bias=ssm_conv_bias,
+                ssm_drop_rate=ssm_drop_rate,
+                ssm_init=ssm_init,
+                forward_type=forward_type,
+                mlp_ratio=mlp_ratio,
+                mlp_act_layer=mlp_act_layer,
+                mlp_drop_rate=mlp_drop_rate,
+                use_checkpoint=use_checkpoint,
+            )
+            blocks.append(block)
+
+        self.residual_blocks = Residual(nn.Sequential(*blocks))  # 处理整个 blocks 序列的残差连接
+
+    def forward(self, x):
+        return self.residual_blocks(x)
 
 class res4deepMambaunetv1(nn.Module):
     def __init__(
@@ -1425,26 +1286,54 @@ class res4deepMambaunetv1(nn.Module):
         self.encoder_layers = []
         self.decoder_layers = []
 
+        # for i_layer in range(self.num_layers):
+        #
+        #
+        #     downsample = _make_downsample(
+        #         self.dims[i_layer - 1],
+        #         self.dims[i_layer],
+        #         norm_layer=norm_layer,
+        #     ) if (i_layer != 0) else nn.Identity()  # ZSJ 修改为i_layer != 0，也就是第一层不下采样，和论文的图保持一致，也方便我取出每个尺度处理好的特征
+        #
+        #     self.encoder_layers.append(self._make_layer(
+        #         dim=self.dims[i_layer],
+        #         drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
+        #         use_checkpoint=use_checkpoint,
+        #         norm_layer=norm_layer,
+        #         downsample=downsample,
+        #         # =================
+        #         ssm_d_state=ssm_d_state,
+        #         ssm_ratio=ssm_ratio,
+        #         ssm_dt_rank=ssm_dt_rank,
+        #         ssm_act_layer=ssm_act_layer,
+        #         ssm_conv=ssm_conv,
+        #         ssm_conv_bias=ssm_conv_bias,
+        #         ssm_drop_rate=ssm_drop_rate,
+        #         ssm_init=ssm_init,
+        #         forward_type=forward_type,
+        #         # =================
+        #         mlp_ratio=mlp_ratio,
+        #         mlp_act_layer=mlp_act_layer,
+        #         mlp_drop_rate=mlp_drop_rate,
+        #     ))
+        #     if i_layer != 0:
+        #         self.decoder_layers.append(
+        #             Decoder_Block(in_channel=self.dims[i_layer], out_channel=self.dims[i_layer - 1]))
         for i_layer in range(self.num_layers):
-            # downsample = _make_downsample(
-            #     self.dims[i_layer],
-            #     self.dims[i_layer + 1],
-            #     norm_layer=norm_layer,
-            # ) if (i_layer < self.num_layers - 1) else nn.Identity()
+            # 如果不是第一层，则进行降采样
+            downsample = (
+                DownsampleLayerV3(
+                    dim=self.dims[i_layer - 1],
+                    out_dim=self.dims[i_layer],
+                    norm_layer=norm_layer
+                ) if i_layer != 0 else nn.Identity()
+            )
 
-            downsample = _make_downsample(
-                self.dims[i_layer - 1],
-                self.dims[i_layer],
-                norm_layer=norm_layer,
-            ) if (i_layer != 0) else nn.Identity()  # ZSJ 修改为i_layer != 0，也就是第一层不下采样，和论文的图保持一致，也方便我取出每个尺度处理好的特征
-
-            self.encoder_layers.append(self._make_layer(
+            encoder_layer = EncoderLayer(
                 dim=self.dims[i_layer],
-                drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
+                drop_path=dpr[sum(self.depths[:i_layer]):sum(self.depths[:i_layer + 1])],
                 use_checkpoint=use_checkpoint,
                 norm_layer=norm_layer,
-                downsample=downsample,
-                # =================
                 ssm_d_state=ssm_d_state,
                 ssm_ratio=ssm_ratio,
                 ssm_dt_rank=ssm_dt_rank,
@@ -1454,15 +1343,19 @@ class res4deepMambaunetv1(nn.Module):
                 ssm_drop_rate=ssm_drop_rate,
                 ssm_init=ssm_init,
                 forward_type=forward_type,
-                # =================
                 mlp_ratio=mlp_ratio,
                 mlp_act_layer=mlp_act_layer,
                 mlp_drop_rate=mlp_drop_rate,
-            ))
+            )
+            self.encoder_layers.append(
+                nn.Sequential(
+                    downsample,
+                    encoder_layer
+                )
+            )
             if i_layer != 0:
                 self.decoder_layers.append(
                     Decoder_Block(in_channel=self.dims[i_layer], out_channel=self.dims[i_layer - 1]))
-
         self.encoder_block1, self.encoder_block2, self.encoder_block3, self.encoder_block4 = self.encoder_layers
         self.deocder_block1, self.deocder_block2, self.deocder_block3 = self.decoder_layers
 
@@ -1557,7 +1450,7 @@ class res4deepMambaunetv1(nn.Module):
                 mlp_drop_rate=mlp_drop_rate,
                 use_checkpoint=use_checkpoint,
             )
-            # blocks.append(Residual(block, downsample if d == 0 else nn.Identity()))
+            blocks.append(Residual(block, downsample if d == 0 else nn.Identity()))
             blocks.append(block)
         return nn.Sequential(OrderedDict(
             # ZSJ 把downsample放到前面来，方便我取出encoder中每个尺度处理好的图像，而不是刚刚下采样完的图像
