@@ -21,6 +21,9 @@ from BaseUnet import UNet
 from mambaunet5deep import  mambaunet5deepnet
 # from wyxmambaunet import wyxMambaUetwithattention
 from res4deeppuremambaunet import res4deepMambaunetv1
+from res5deepmambaunet import  res5deepMambaunetv1
+
+
 # 使用随机种子可以确保每次运行代码时生成的随机数序列相同，从而得到相同的结果
 def random_seed(SEED):
     random.seed(SEED)
@@ -93,6 +96,9 @@ def train_net(dataset_name):
     # net = mambaunet5deepnet(depths=[3, 4, 4,4 ,4],      dims=[96, 192, 384, 768,1536], ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,
     #              ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version,
     #              patchembed_version=ph.patchembed_version)
+    net = res5deepMambaunetv1(depths=[3, 4, 4,4 ,4],      dims=[96, 192, 384, 768,1536], ssm_d_state=ph.ssm_d_state, ssm_dt_rank=ph.ssm_dt_rank,
+                 ssm_ratio=ph.ssm_ratio, mlp_ratio=ph.mlp_ratio, downsample_version=ph.downsample_version,
+                 patchembed_version=ph.patchembed_version)
 
     # net = wyxMambaUetwithattention(  num_classes=1,   in_channels=4,     img_size=256,      embed_dim=768,      depth=12,     patch_size=16  )
 

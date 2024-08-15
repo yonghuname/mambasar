@@ -1217,7 +1217,7 @@ class EncoderLayer(nn.Module):
     def forward(self, x):
         return self.residual_blocks(x)
 
-class res4deepMambaunetv1(nn.Module):
+class res5deepMambaunetv1(nn.Module):
     def __init__(
             self,
             patch_size=4,  # 补丁大小，表示图像分块的大小
