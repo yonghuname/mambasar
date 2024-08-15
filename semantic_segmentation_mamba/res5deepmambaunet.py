@@ -1223,8 +1223,8 @@ class res5deepMambaunetv1(nn.Module):
             patch_size=4,  # 补丁大小，表示图像分块的大小
             in_chans=4,  # 输入通道数，这里为4，表示输入图像有4个通道
             num_classes=1,  # 类别数，通常用于分类任务，原来这写的是1000
-            depths=[2, 2, 9, 2],  # 每个阶段中的层数
-            dims=[96, 192, 384, 768],  # 每个阶段的通道维度
+            depths=[3, 4, 4, 4, 3],  # 每个阶段中的层数
+            dims=[96, 192, 384, 768, 1536],  # 每个阶段的通道维度
             # =========================
             ssm_d_state=16,  # SSM状态维度
             ssm_ratio=2.0,  # SSM的比率参数
@@ -1247,7 +1247,7 @@ class res5deepMambaunetv1(nn.Module):
             **kwargs,  # 其他扩展参数
     ):
         super().__init__()
-        print("mambaunet5deepnet  init")
+        print("res5deepMambaunetv1  init")
         self.num_classes = num_classes
         self.num_layers = len(depths)
         if isinstance(dims, int):
