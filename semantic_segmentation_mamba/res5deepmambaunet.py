@@ -1247,14 +1247,13 @@ class res5deepMambaunetv1(nn.Module):
             **kwargs,  # 其他扩展参数
     ):
         super().__init__()
-        print("mamba改v2 RSM_SS2hw  init")
+        print("mambaunet5deepnet  init")
         self.num_classes = num_classes
         self.num_layers = len(depths)
         if isinstance(dims, int):
             dims = [int(dims * 2 ** i_layer) for i_layer in range(self.num_layers)]
         self.num_features = dims[-1]
         self.dims = dims
-        # self.depths = depths
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
 
         _NORMLAYERS = dict(
@@ -1287,39 +1286,7 @@ class res5deepMambaunetv1(nn.Module):
         self.encoder_layers = []
         self.decoder_layers = []
 
-        # for i_layer in range(self.num_layers):
-        #
-        #
-        #     downsample = _make_downsample(
-        #         self.dims[i_layer - 1],
-        #         self.dims[i_layer],
-        #         norm_layer=norm_layer,
-        #     ) if (i_layer != 0) else nn.Identity()  # ZSJ 修改为i_layer != 0，也就是第一层不下采样，和论文的图保持一致，也方便我取出每个尺度处理好的特征
-        #
-        #     self.encoder_layers.append(self._make_layer(
-        #         dim=self.dims[i_layer],
-        #         drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
-        #         use_checkpoint=use_checkpoint,
-        #         norm_layer=norm_layer,
-        #         downsample=downsample,
-        #         # =================
-        #         ssm_d_state=ssm_d_state,
-        #         ssm_ratio=ssm_ratio,
-        #         ssm_dt_rank=ssm_dt_rank,
-        #         ssm_act_layer=ssm_act_layer,
-        #         ssm_conv=ssm_conv,
-        #         ssm_conv_bias=ssm_conv_bias,
-        #         ssm_drop_rate=ssm_drop_rate,
-        #         ssm_init=ssm_init,
-        #         forward_type=forward_type,
-        #         # =================
-        #         mlp_ratio=mlp_ratio,
-        #         mlp_act_layer=mlp_act_layer,
-        #         mlp_drop_rate=mlp_drop_rate,
-        #     ))
-        #     if i_layer != 0:
-        #         self.decoder_layers.append(
-        #             Decoder_Block(in_channel=self.dims[i_layer], out_channel=self.dims[i_layer - 1]))
+
         for i_layer in range(self.num_layers):
             # 如果不是第一层，则进行降采样
             downsample = (
@@ -1357,15 +1324,15 @@ class res5deepMambaunetv1(nn.Module):
             if i_layer != 0:
                 self.decoder_layers.append(
                     Decoder_Block(in_channel=self.dims[i_layer], out_channel=self.dims[i_layer - 1]))
-        self.encoder_block1, self.encoder_block2, self.encoder_block3, self.encoder_block4 = self.encoder_layers
-        self.deocder_block1, self.deocder_block2, self.deocder_block3 = self.decoder_layers
+        self.encoder_block1, self.encoder_block2, self.encoder_block3, self.encoder_block4, self.encoder_block5 = self.encoder_layers
+        self.deocder_block1, self.deocder_block2, self.deocder_block3, self.deocder_block4 = self.decoder_layers
 
-        self.upsample_x4 = nn.Sequential(
+        self.upsample_x2 = nn.Sequential(
             nn.Conv2d(self.dims[0], self.dims[0] // 2, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(self.dims[0] // 2),
             nn.ReLU(inplace=True),
             # nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(self.dims[0]// 2 , 8, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(self.dims[0] // 2, 8, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(8),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=2)
@@ -1459,31 +1426,31 @@ class res5deepMambaunetv1(nn.Module):
             blocks=nn.Sequential(*blocks, ),
         ))
 
-
     def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
+        # 通道都变了，修改注释记得
+        x1 = self.patch_embed(x1)  # 128x128, 96个通道
 
-        x1 = self.patch_embed(x1)  # 64x64, 96个通道
+        x1_1 = self.encoder_block1(x1)  # 128x128   96个通道
+        x1_2 = self.encoder_block2(x1_1)  # 64x64,, 192个通道
+        x1_3 = self.encoder_block3(x1_2)  # 32x32  384个通道
+        x1_4 = self.encoder_block4(x1_3)  # 16*16 768个通道
 
-        x1_1 = self.encoder_block1(x1)  # 64x64, 96个通道
-        x1_2 = self.encoder_block2(x1_1)  # 32x32, 192个通道
-        x1_3 = self.encoder_block3(x1_2)  # 16x16, 384个通道
-        x1_4 = self.encoder_block4(x1_3)  # 8x8, 768个通道
-
+        x1_5 = self.encoder_block5(x1_4)  # 8x8, 768个通道
         # 在通过编码器后，特征图的排列可能不符合解码器的输入要求，因此需要进行重排
         x1_1 = rearrange(x1_1, "b h w c -> b c h w").contiguous()
         x1_2 = rearrange(x1_2, "b h w c -> b c h w").contiguous()
         x1_3 = rearrange(x1_3, "b h w c -> b c h w").contiguous()
         x1_4 = rearrange(x1_4, "b h w c -> b c h w").contiguous()
+        x1_5 = rearrange(x1_5, "b h w c -> b c h w").contiguous()
         #
-        decode_3 = self.deocder_block3(x1_4, x1_3)  # 16x16, 384个通道
+        decode_4 = self.deocder_block4(x1_5, x1_4)
+        decode_3 = self.deocder_block3(decode_4, x1_3)  # 16x16, 384个通道
         decode_2 = self.deocder_block2(decode_3, x1_2)  # 32x32, 192个通道
         decode_1 = self.deocder_block1(decode_2, x1_1)  # 64x64, 96个通道
 
-        output = self.upsample_x4(decode_1)  # 256x256, 8个通道
+        output = self.upsample_x2(decode_1)  # 256x256, 8个通道
         output = self.conv_out_seg(output)  # 输出 256x256, 1个通道
 
         return output
-
-
 
 #  这个版本是 把下采样 第一次embed保留变大的版本 只有纯mamba 改尺寸的  1/2 HW
