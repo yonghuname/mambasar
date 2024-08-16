@@ -1394,7 +1394,7 @@ class EncoderLayer(nn.Module):
         self.dab=DABlock(dim)
     def forward(self, x):
         x = self.residual_blocks(x)
-        print(x.shape())
+        print(x.size())
         # x=self.mha(x)
         x= self.dab(x)
         return x
