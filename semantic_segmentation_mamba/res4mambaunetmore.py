@@ -1350,9 +1350,13 @@ class EncoderLayer(nn.Module):
             blocks.append(block)
 
         self.residual_blocks = Residual(nn.Sequential(*blocks))  # 处理整个 blocks 序列的残差连接
+
+        # 添加 MHA 层
+        self.mha = MultiHeadAttention(embed_dim=dim, num_heads=8)
         self.dab=DABlock(dim)
     def forward(self, x):
         x = self.residual_blocks(x)
+        x=self.mha(x)
         x= self.dab(x)
         return x
 
