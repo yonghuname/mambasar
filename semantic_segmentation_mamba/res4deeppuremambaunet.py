@@ -1184,7 +1184,7 @@ class AttentionBlock(nn.Module): #gate 注意力
         psi1 = self.psi(psi1)
 
         # 打印应用sigmoid后的psi1的尺寸
-        print(f"After Sigmoid: psi1 shape {psi1.size()}")
+        # print(f"After Sigmoid: psi1 shape {psi1.size()}")
 
         # 第四步：将x与权重psi1相乘，得到最终的输出
         return x * psi1
