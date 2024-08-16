@@ -1710,7 +1710,7 @@ class res4deepMambaunetwithmultihead(nn.Module):
         # self.encoder_layers = [nn.ModuleList()] * self.num_layers
         self.encoder_layers = []
         self.decoder_layers = []
-        self.mha = MultiHeadAttention(embed_dim=dims[0], num_heads=8)
+        self.mha = MultiHeadAttention(embed_dim=4, num_heads=8)
         # for i_layer in range(self.num_layers):
         #
         #
@@ -1886,10 +1886,10 @@ class res4deepMambaunetwithmultihead(nn.Module):
 
 
     def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
-
+        x1 = self.mha(x1)
         x1 = self.patch_embed(x1)  # 64x64, 96个通道
 
-        x1 = self.mha(x1)
+
         x1_1 = self.encoder_block1(x1)  # 64x64, 96个通道
         x1_2 = self.encoder_block2(x1_1)  # 32x32, 192个通道
         x1_3 = self.encoder_block3(x1_2)  # 16x16, 384个通道
