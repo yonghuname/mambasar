@@ -1275,7 +1275,45 @@ class Decoder_Block(nn.Module):
         output = self.fuse(output)
         output =self.dab(output)
         return output
+class Decoder_Block2(nn.Module):
+    """Basic block in decoder with attention 试试看吧."""
 
+    def __init__(self, in_channel, out_channel):
+        super().__init__()
+
+        assert out_channel  == in_channel  // 2, 'The out_channel is not in_channel//2 in decoder block'
+
+        self.up = nn.Upsample(scale_factor=2, mode='nearest')
+
+        # Attention block
+        self.attention = AttentionBlock(F_g=in_channel , F_l=out_channel  , F_int=out_channel)# 这个 F_int=out_channel 应该比较好吧
+
+        self.fuse = nn.Sequential(
+            nn.Conv2d(in_channel+out_channel, in_channel , kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(in_channel ),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channel , out_channel , kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channel ),
+            nn.ReLU(inplace=True)
+        )
+        self.dab = DABlock(out_channel)
+
+    def forward(self, de, en):
+        de_up = self.up(de)
+        #
+        # print(f"Input de  shape: {de.size()}")
+        #
+        # print(f"Input de_up shape: {de_up.size()}")
+        # Apply attention mechanism before concatenation
+        en_att = self.attention(g=de_up , x=en)
+        # print(f" en  shape: {en.size()}")
+        # print(f"  en_att shape: {en_att.size()}")
+        output = torch.cat([de_up, en_att], dim=1)
+
+        # print(f"  output shape: {output.size()}")
+        output = self.fuse(output)
+        output =self.dab(output)
+        return output
 # f封装真好用
 class DownsampleLayerV3(nn.Module):
     def __init__(self, dim=96, out_dim=192, norm_layer=nn.LayerNorm):
@@ -1357,6 +1395,63 @@ class EncoderLayer(nn.Module):
     def forward(self, x):
         x = self.residual_blocks(x)
         x=self.mha(x)
+        x= self.dab(x)
+        return x
+
+class EncoderLayer2(nn.Module):
+    def __init__(
+            self,
+            dim=96,
+            drop_path=[0, 0],
+            use_checkpoint=False,
+            norm_layer=nn.LayerNorm,
+            ssm_d_state=16,
+            ssm_ratio=2.0,
+            ssm_dt_rank="auto",
+            ssm_act_layer=nn.SiLU,
+            ssm_conv=3,
+            ssm_conv_bias=True,
+            ssm_drop_rate=0.0,
+            ssm_init="v0",
+            forward_type="v2",
+            mlp_ratio=4.0,
+            mlp_act_layer=nn.GELU,
+            mlp_drop_rate=0.0,
+            **kwargs
+    ):
+        super(EncoderLayer, self).__init__()
+
+        depth = len(drop_path)
+        blocks = []
+        for d in range(depth):
+            block = OSSBlock(
+                hidden_dim=dim,
+                drop_path=drop_path[d],
+                norm_layer=norm_layer,
+                ssm_d_state=ssm_d_state,
+                ssm_ratio=ssm_ratio,
+                ssm_dt_rank=ssm_dt_rank,
+                ssm_act_layer=ssm_act_layer,
+                ssm_conv=ssm_conv,
+                ssm_conv_bias=ssm_conv_bias,
+                ssm_drop_rate=ssm_drop_rate,
+                ssm_init=ssm_init,
+                forward_type=forward_type,
+                mlp_ratio=mlp_ratio,
+                mlp_act_layer=mlp_act_layer,
+                mlp_drop_rate=mlp_drop_rate,
+                use_checkpoint=use_checkpoint,
+            )
+            blocks.append(block)
+
+        self.residual_blocks = Residual(nn.Sequential(*blocks))  # 处理整个 blocks 序列的残差连接
+
+        # 添加 MHA 层
+        # self.mha = MultiHeadAttention(embed_dim=dim, num_heads=8)
+        self.dab=DABlock(dim)
+    def forward(self, x):
+        x = self.residual_blocks(x)
+        # x=self.mha(x)
         x= self.dab(x)
         return x
 
@@ -1660,7 +1755,7 @@ class res4deepMambaunetwithmultihead(nn.Module):
             **kwargs,  # 其他扩展参数
     ):
         super().__init__()
-        print("res4deepMambaunetv2 init")
+        print("res4deepMambaunetwithmultihead init")
         self.num_classes = num_classes
         self.num_layers = len(depths)
         if isinstance(dims, int):
