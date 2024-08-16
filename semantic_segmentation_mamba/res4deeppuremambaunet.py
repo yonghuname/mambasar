@@ -1076,8 +1076,8 @@ class AttentionBlock(nn.Module): #gate 注意力
         psi1 = self.psi(psi1)
         return x * psi1
 
-#  这个是有attention版本的
-class Decoder_Block2(nn.Module):
+#  这个是有attention版本的后面加2 什么的是为了 方便调用 ，不改代码。 加个2 相当于不会被调用，方便选择
+class Decoder_Block(nn.Module):
     """Basic block in decoder with attention."""
 
     def __init__(self, in_channels, out_channels):
@@ -1117,8 +1117,8 @@ class Decoder_Block2(nn.Module):
         return output
 
 
-
-class Decoder_Block(nn.Module):
+# 这个是没attention版本的，后面加2 什么的是为了 方便调用 ，不改代码。 加个2 相当于不会被调用，方便选择
+class Decoder_Block2(nn.Module):
     """Basic block in decoder."""
 
     def __init__(self, in_channel, out_channel):
