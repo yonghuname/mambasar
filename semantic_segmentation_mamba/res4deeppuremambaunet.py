@@ -1048,7 +1048,7 @@ class OSSBlock(nn.Module):
         else:
             return self._forward(input)
 
-class AttentionBlock(nn.Module): #gate 注意力
+class AttentionBlock22(nn.Module): #gate 注意力
     def __init__(self, F_g, F_l, F_int):
         super(AttentionBlock, self).__init__()
         self.W_g = nn.Sequential(
@@ -1077,7 +1077,7 @@ class AttentionBlock(nn.Module): #gate 注意力
         return x * psi1
 
 #  这个是有attention版本的后面加2 什么的是为了 方便调用 ，不改代码。 加个2 相当于不会被调用，方便选择
-class Decoder_Block(nn.Module):
+class Decoder_Block233(nn.Module):
     """Basic block in decoder with attention 试试看吧."""
 
     def __init__(self, in_channel, out_channel):
@@ -1135,6 +1135,96 @@ class Decoder_Block2(nn.Module):
     def forward(self, de, en):
         de = self.up(de)
         output = torch.cat([de, en], dim=1)
+        output = self.fuse(output)
+
+        return output
+
+
+
+class AttentionBlock(nn.Module): #gate 注意力
+    def __init__(self, F_g, F_l, F_int):
+        super(AttentionBlock, self).__init__()
+        self.W_g = nn.Sequential(
+            nn.Conv2d(F_g, F_int, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(F_int)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, F_int, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(F_int)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(F_int, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, g, x):
+        # 打印输入g和x的尺寸
+        print(f"Input g shape: {g.size()}")
+        print(f"Input x shape: {x.size()}")
+        # print(F_g)
+        # 第一步：通过W_g和W_x处理g和x
+        g1 = self.W_g(g)
+        x1 = self.W_x(x)
+
+        # 打印g1和x1的尺寸
+        print(f"After W_g and W_x: g1 shape {g1.size()}, x1 shape {x1.size()}")
+
+        # 第二步：将g1和x1相加，并通过ReLU激活函数
+        psi1 = self.relu(g1 + x1)
+
+        # 打印psi1的尺寸
+        print(f"After ReLU: psi1 shape {psi1.size()}")
+
+        # 第三步：通过psi层生成权重psi1，并应用Sigmoid激活函数
+        psi1 = self.psi(psi1)
+
+        # 打印应用sigmoid后的psi1的尺寸
+        print(f"After Sigmoid: psi1 shape {psi1.size()}")
+
+        # 第四步：将x与权重psi1相乘，得到最终的输出
+        return x * psi1
+
+#  这个是有attention版本的后面加2 什么的是为了 方便调用 ，不改代码。 加个2 相当于不会被调用，方便选择
+class Decoder_Block(nn.Module):
+    """Basic block in decoder with attention 试试看吧."""
+
+    def __init__(self, in_channel, out_channel):
+        super().__init__()
+
+        assert out_channel  == in_channel  // 2, 'The out_channel is not in_channel//2 in decoder block'
+
+        self.up = nn.Upsample(scale_factor=2, mode='nearest')
+
+        # Attention block
+        self.attention = AttentionBlock(F_g=in_channel , F_l=out_channel  , F_int=out_channel // 2)
+
+        self.fuse = nn.Sequential(
+            nn.Conv2d(in_channel+out_channel, in_channel , kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(in_channel ),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channel , out_channel , kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channel ),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, de, en):
+        de_up = self.up(de)
+
+        print(f"Input de  shape: {de.size()}")
+
+        print(f"Input de_up shape: {de_up.size()}")
+        # Apply attention mechanism before concatenation
+        en_att = self.attention(g=de_up , x=en)
+        print(f" en  shape: {en.size()}")
+        print(f"  en_att shape: {en_att.size()}")
+        output = torch.cat([de_up, en_att], dim=1)
+
+        print(f"  output shape: {output.size()}")
         output = self.fuse(output)
 
         return output
@@ -1357,6 +1447,7 @@ class res4deepMambaunetv1(nn.Module):
             if i_layer != 0:
                 self.decoder_layers.append(
                     Decoder_Block(in_channel=self.dims[i_layer], out_channel=self.dims[i_layer - 1]))
+
         self.encoder_block1, self.encoder_block2, self.encoder_block3, self.encoder_block4 = self.encoder_layers
         self.deocder_block1, self.deocder_block2, self.deocder_block3 = self.decoder_layers
 
