@@ -1313,7 +1313,7 @@ class Decoder_Block2(nn.Module):
         # print(f"  output shape: {output.size()}")
         output = self.fuse(output)
         output =self.dab(output)
-        return output
+        return output42
 # f封装真好用
 class DownsampleLayerV3(nn.Module):
     def __init__(self, dim=96, out_dim=192, norm_layer=nn.LayerNorm):
@@ -1394,10 +1394,13 @@ class EncoderLayer(nn.Module):
         self.dab=DABlock(dim)
     def forward(self, x):
         x = self.residual_blocks(x)
-        print(x.size())
+
+        print(f"xsize",x.size())
         # print(x.shape())
         # x=self.mha(x)
         x= self.dab(x)
+
+        print(f"xsize",x.size())
         return x
 
 class EncoderLayer2(nn.Module):
