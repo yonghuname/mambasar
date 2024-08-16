@@ -1104,13 +1104,13 @@ class Decoder_Block(nn.Module):
 
         # Apply attention mechanism before concatenation
         en_att = self.attention(g=de, x=en)
-        print("deshape="+de.shape())
-
-        print("deshape=" + de_up.shape())
-
-        print("en="+en.shape())
-
-        print("en=" + en_up.shape())
+        # print("deshape="+de.shape())
+        #
+        # print("deshape=" + de_up.shape())
+        #
+        # print("en="+en.shape())
+        #
+        # print("en=" + en_up.shape())
         output = torch.cat([de_up, en_att], dim=1)
         output = self.fuse(output)
 
