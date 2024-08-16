@@ -1080,22 +1080,22 @@ class AttentionBlock(nn.Module): #gate 注意力
 class Decoder_Block(nn.Module):
     """Basic block in decoder with attention 试试看吧."""
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channel, out_channel):
         super().__init__()
 
-        assert out_channels == in_channels // 2, 'The out_channel is not in_channel//2 in decoder block'
+        assert out_channel  == in_channel  // 2, 'The out_channel is not in_channel//2 in decoder block'
 
         self.up = nn.Upsample(scale_factor=2, mode='nearest')
 
         # Attention block
-        self.attention = AttentionBlock(F_g=out_channels, F_l=out_channels, F_int=out_channels // 2)
+        self.attention = AttentionBlock(F_g=out_channel , F_l=out_channel  , F_int=out_channel // 2)
 
         self.fuse = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channels),
+            nn.Conv2d(in_channel , out_channel , kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channel ),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channels),
+            nn.Conv2d(out_channel , out_channel , kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(out_channel ),
             nn.ReLU(inplace=True)
         )
 
