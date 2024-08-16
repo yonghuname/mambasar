@@ -1300,14 +1300,14 @@ class EncoderLayer(nn.Module):
     def forward(self, x):
         x = self.residual_blocks(x)
 
-        print(f"xsize1111",x.size())
+        # print(f"xsize1111",x.size())
 
         # x = x.permute(0, 1, 2, 3).contiguous()  # (batch, height, width, channels)
 
         # print(x.shape())
         x=self.mha(x)
         # x= self.dab(x)
-        print(f"xsize222222",x.size())
+        # print(f"xsize222222",x.size())
         #xsize222222 torch.Size([1, 128, 128, 96])
         # x = x.permute(0, 1, 3, 2).contiguous()
 
