@@ -1188,7 +1188,32 @@ class AttentionBlock(nn.Module): #gate 注意力
 
         # 第四步：将x与权重psi1相乘，得到最终的输出
         return x * psi1
+class DABlock(nn.Module):
+    def __init__(self, in_channels, reduction_ratio=8):
+        super(DABlock, self).__init__()
+        # 确保 reduced_channels 至少为 1
+        reduced_channels = max(1, in_channels // reduction_ratio)
 
+        self.channel_attention = nn.Sequential(
+            nn.AdaptiveMaxPool2d(1),  # 用自适应的最大最大池化效果较好
+            nn.Conv2d(in_channels, reduced_channels, 1, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(reduced_channels, in_channels, 1, bias=False),
+            nn.Sigmoid()
+        )
+        self.spatial_attention = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels, kernel_size=7, padding=3, groups=in_channels, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        # 通道注意力
+        ca = self.channel_attention(x)
+        x = x * ca
+        # 空间注意力
+        sa = self.spatial_attention(x)
+        x = x * sa
+        return x
 #  这个是有attention版本的后面加2 什么的是为了 方便调用 ，不改代码。 加个2 相当于不会被调用，方便选择
 class Decoder_Block(nn.Module):
     """Basic block in decoder with attention 试试看吧."""
@@ -1211,6 +1236,7 @@ class Decoder_Block(nn.Module):
             nn.BatchNorm2d(out_channel ),
             nn.ReLU(inplace=True)
         )
+        self.dab = DABlock(out_channel)
 
     def forward(self, de, en):
         de_up = self.up(de)
@@ -1226,7 +1252,7 @@ class Decoder_Block(nn.Module):
 
         # print(f"  output shape: {output.size()}")
         output = self.fuse(output)
-
+        output =self.dab(output)
         return output
 
 # f封装真好用
@@ -1303,9 +1329,11 @@ class EncoderLayer(nn.Module):
             blocks.append(block)
 
         self.residual_blocks = Residual(nn.Sequential(*blocks))  # 处理整个 blocks 序列的残差连接
-
+        self.dab=DABlock(dim)
     def forward(self, x):
-        return self.residual_blocks(x)
+        x = self.residual_blocks(x)
+        x= self.dab(x)
+        return x
 
 class res4deepMambaunetv1(nn.Module):
     def __init__(
