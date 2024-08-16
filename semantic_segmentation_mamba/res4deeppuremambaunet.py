@@ -1078,7 +1078,7 @@ class AttentionBlock(nn.Module): #gate 注意力
 
 #  这个是有attention版本的后面加2 什么的是为了 方便调用 ，不改代码。 加个2 相当于不会被调用，方便选择
 class Decoder_Block(nn.Module):
-    """Basic block in decoder with attention."""
+    """Basic block in decoder with attention 试试看吧."""
 
     def __init__(self, in_channels, out_channels):
         super().__init__()
