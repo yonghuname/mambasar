@@ -1095,7 +1095,7 @@ class MultiHeadAttention(nn.Module):
 
         # 恢复形状
         attn_output = attn_output.view(batch, height, width, channels)
-        attn_output = attn_output.permute(0, 3, 1, 2).contiguous()  # (batch, channels, height, width)
+        # attn_output = attn_output.permute(0, 3, 1, 2).contiguous()  # (batch, channels, height, width)
         return attn_output
 
 #  这个是有attention版本的后面加2 什么的是为了 方便调用 ，不改代码。 加个2 相当于不会被调用，方便选择
@@ -1302,13 +1302,14 @@ class EncoderLayer(nn.Module):
 
         print(f"xsize1111",x.size())
 
+        # x = x.permute(0, 1, 2, 3).contiguous()  # (batch, height, width, channels)
 
         # print(x.shape())
         x=self.mha(x)
         # x= self.dab(x)
         print(f"xsize222222",x.size())
-
-        x = x.permute(0, 3, 1, 2).contiguous()
+        # xsize222222 torch.Size([1, 96, 128, 128])
+        x = x.permute(0, 2, 3, 1).contiguous()
         return x
 
 class EncoderLayer2(nn.Module):
