@@ -1099,68 +1099,10 @@ class MultiHeadAttention(nn.Module):
         return attn_output
 
 #  这个是有attention版本的后面加2 什么的是为了 方便调用 ，不改代码。 加个2 相当于不会被调用，方便选择
-class Decoder_Block233(nn.Module):
-    """Basic block in decoder with attention 试试看吧."""
 
-    def __init__(self, in_channel, out_channel):
-        super().__init__()
-
-        assert out_channel  == in_channel  // 2, 'The out_channel is not in_channel//2 in decoder block'
-
-        self.up = nn.Upsample(scale_factor=2, mode='nearest')
-
-        # Attention block
-        self.attention = AttentionBlock(F_g=out_channel , F_l=out_channel  , F_int=out_channel // 2)
-
-        self.fuse = nn.Sequential(
-            nn.Conv2d(in_channel , out_channel , kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channel ),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channel , out_channel , kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channel ),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, de, en):
-        de_up = self.up(de)
-
-        # Apply attention mechanism before concatenation
-        en_att = self.attention(g=de, x=en)
-        # print("deshape="+de.shape())
-        #
-        # print("deshape=" + de_up.shape())
-        #
-        # print("en="+en.shape())
-        #
-        # print("en=" + en_up.shape())
-        output = torch.cat([de_up, en_att], dim=1)
-        output = self.fuse(output)
-
-        return output
 
 
 # 这个是没attention版本的，后面加2 什么的是为了 方便调用 ，不改代码。 加个2 相当于不会被调用，方便选择
-class Decoder_Block2(nn.Module):
-    """Basic block in decoder."""
-
-    def __init__(self, in_channel, out_channel):
-        super().__init__()
-
-        assert out_channel == in_channel // 2, 'the out_channel is not in_channel//2 in decoder block'
-        self.up = nn.Upsample(scale_factor=2, mode='nearest')
-        self.fuse = nn.Sequential(nn.Conv2d(in_channels=in_channel + out_channel, out_channels=out_channel,
-                                            kernel_size=1, padding=0, bias=False),
-                                  nn.BatchNorm2d(out_channel),
-                                  nn.ReLU(inplace=True),
-                                  )
-
-    def forward(self, de, en):
-        de = self.up(de)
-        output = torch.cat([de, en], dim=1)
-        output = self.fuse(output)
-
-        return output
-
 
 
 class AttentionBlock(nn.Module): #gate 注意力
@@ -1276,45 +1218,7 @@ class Decoder_Block(nn.Module):
         output = self.fuse(output)
         output =self.dab(output)
         return output
-class Decoder_Block2(nn.Module):
-    """Basic block in decoder with attention 试试看吧."""
 
-    def __init__(self, in_channel, out_channel):
-        super().__init__()
-
-        assert out_channel  == in_channel  // 2, 'The out_channel is not in_channel//2 in decoder block'
-
-        self.up = nn.Upsample(scale_factor=2, mode='nearest')
-
-        # Attention block
-        self.attention = AttentionBlock(F_g=in_channel , F_l=out_channel  , F_int=out_channel)# 这个 F_int=out_channel 应该比较好吧
-
-        self.fuse = nn.Sequential(
-            nn.Conv2d(in_channel+out_channel, in_channel , kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(in_channel ),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channel , out_channel , kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(out_channel ),
-            nn.ReLU(inplace=True)
-        )
-        self.dab = DABlock(out_channel)
-
-    def forward(self, de, en):
-        de_up = self.up(de)
-        #
-        # print(f"Input de  shape: {de.size()}")
-        #
-        # print(f"Input de_up shape: {de_up.size()}")
-        # Apply attention mechanism before concatenation
-        en_att = self.attention(g=de_up , x=en)
-        # print(f" en  shape: {en.size()}")
-        # print(f"  en_att shape: {en_att.size()}")
-        output = torch.cat([de_up, en_att], dim=1)
-
-        # print(f"  output shape: {output.size()}")
-        output = self.fuse(output)
-        output =self.dab(output)
-        return output42
 # f封装真好用
 class DownsampleLayerV3(nn.Module):
     def __init__(self, dim=96, out_dim=192, norm_layer=nn.LayerNorm):
@@ -1396,15 +1300,14 @@ class EncoderLayer(nn.Module):
     def forward(self, x):
         x = self.residual_blocks(x)
 
-        print(f"xsize",x.size())
+        print(f"xsize1111",x.size())
 
 
-        print(f"xsize22222",x.size())
         # print(x.shape())
         x=self.mha(x)
-        x= self.dab(x)
-        x = x.permute(0, 3, 1, 2).contiguous()
-        print(f"xsize",x.size())
+        # x= self.dab(x)
+        # x = x.permute(0, 3, 1, 2).contiguous()
+        print(f"xsize222222",x.size())
 
         return x
 
