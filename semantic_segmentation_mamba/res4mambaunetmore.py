@@ -1309,9 +1309,9 @@ class EncoderLayer(nn.Module):
         # x= self.dab(x)
         print(f"xsize222222",x.size())
         #xsize222222 torch.Size([1, 128, 128, 96])
-        x = x.permute(0, 1, 3, 2).contiguous()
+        # x = x.permute(0, 1, 3, 2).contiguous()
 
-        print(f"xsize3333333",x.size())
+        # print(f"xsize3333333",x.size())
         return x
 
 class EncoderLayer2(nn.Module):
