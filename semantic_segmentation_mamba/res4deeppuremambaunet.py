@@ -1201,7 +1201,7 @@ class Decoder_Block(nn.Module):
         self.up = nn.Upsample(scale_factor=2, mode='nearest')
 
         # Attention block
-        self.attention = AttentionBlock(F_g=in_channel , F_l=out_channel  , F_int=out_channel // 2)
+        self.attention = AttentionBlock(F_g=in_channel , F_l=out_channel  , F_int=out_channel)# 这个 F_int=out_channel 应该比较好吧
 
         self.fuse = nn.Sequential(
             nn.Conv2d(in_channel+out_channel, in_channel , kernel_size=3, stride=1, padding=1),
