@@ -1395,7 +1395,7 @@ class EncoderLayer(nn.Module):
     def forward(self, x):
         x = self.residual_blocks(x)
         print(x.size())
-        print(x.shape())
+        # print(x.shape())
         # x=self.mha(x)
         x= self.dab(x)
         return x
