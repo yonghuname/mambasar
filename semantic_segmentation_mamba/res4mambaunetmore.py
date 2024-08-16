@@ -1308,8 +1308,8 @@ class EncoderLayer(nn.Module):
         x=self.mha(x)
         # x= self.dab(x)
         print(f"xsize222222",x.size())
-        # xsize222222 torch.Size([1, 96, 128, 128])
-        x = x.permute(0, 3, 1, 2).contiguous()
+        #xsize222222 torch.Size([1, 128, 128, 96])
+        x = x.permute(0, 1, 3, 2).contiguous()
 
         print(f"xsize3333333",x.size())
         return x
