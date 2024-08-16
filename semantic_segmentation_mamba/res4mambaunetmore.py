@@ -1402,7 +1402,7 @@ class EncoderLayer(nn.Module):
         # print(x.shape())
         x=self.mha(x)
         x= self.dab(x)
-        attn_output = x.permute(0, 3, 1, 2).contiguous()
+        x = x.permute(0, 3, 1, 2).contiguous()
         print(f"xsize",x.size())
 
         return x
