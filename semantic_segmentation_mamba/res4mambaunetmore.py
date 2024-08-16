@@ -1084,7 +1084,7 @@ class MultiHeadAttention(nn.Module):
 
     def forward(self, x):
         # 调整输入形状
-        x = x.permute(0, 2, 3, 1).contiguous()  # (batch, height, width, channels)
+        # x = x.permute(0, 2, 3, 1).contiguous()  # (batch, height, width, channels)
         batch, height, width, channels = x.shape
         x = x.view(batch, height * width, channels)  # (batch, seq_len, embed_dim)
 
@@ -1395,6 +1395,7 @@ class EncoderLayer(nn.Module):
     def forward(self, x):
         x = self.residual_blocks(x)
         print(x.size())
+        print(x.shape())
         # x=self.mha(x)
         x= self.dab(x)
         return x
