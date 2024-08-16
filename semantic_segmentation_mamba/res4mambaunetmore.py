@@ -1398,7 +1398,7 @@ class EncoderLayer(nn.Module):
         print(f"xsize",x.size())
         x = x.permute(0, 3, 1, 2)
 
-        print(f"xsize2222",x.size())
+        print(f"xsize22222",x.size())
         # print(x.shape())
         # x=self.mha(x)
         x= self.dab(x)
