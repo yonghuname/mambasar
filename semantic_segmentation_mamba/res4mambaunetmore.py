@@ -1396,7 +1396,7 @@ class EncoderLayer(nn.Module):
         x = self.residual_blocks(x)
 
         print(f"xsize",x.size())
-        x = x.permute(0, 3, 1, 2)
+        x = Permute(0, 3, 1, 2)
 
         print(f"xsize2222",x.size())
         # print(x.shape())
