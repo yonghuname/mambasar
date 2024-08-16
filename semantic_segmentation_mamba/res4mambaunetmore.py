@@ -1295,7 +1295,7 @@ class EncoderLayer(nn.Module):
         self.residual_blocks = Residual(nn.Sequential(*blocks))  # 处理整个 blocks 序列的残差连接
 
         # 添加 MHA 层
-        self.mha = MultiHeadAttention(embed_dim=dim, num_heads=8)
+        # self.mha = MultiHeadAttention(embed_dim=dim, num_heads=8)
         self.dab=DABlock(dim)
     def forward(self, x):
         x = self.residual_blocks(x)
@@ -1305,7 +1305,7 @@ class EncoderLayer(nn.Module):
         # x = x.permute(0, 1, 2, 3).contiguous()  # (batch, height, width, channels)
 
         # print(x.shape())
-        x=self.mha(x)
+        # x=self.mha(x)
         # x= self.dab(x)
         # print(f"xsize222222",x.size())
         #xsize222222 torch.Size([1, 128, 128, 96])
@@ -1710,7 +1710,7 @@ class res4deepMambaunetwithmultihead(nn.Module):
         # self.encoder_layers = [nn.ModuleList()] * self.num_layers
         self.encoder_layers = []
         self.decoder_layers = []
-
+        self.mha = MultiHeadAttention(embed_dim=dim, num_heads=8)
         # for i_layer in range(self.num_layers):
         #
         #
@@ -1888,7 +1888,7 @@ class res4deepMambaunetwithmultihead(nn.Module):
     def forward(self, x1: torch.Tensor):  # 输入, 256x256, 4个通道
 
         x1 = self.patch_embed(x1)  # 64x64, 96个通道
-
+        x1 = self.mha(x1)
         x1_1 = self.encoder_block1(x1)  # 64x64, 96个通道
         x1_2 = self.encoder_block2(x1_1)  # 32x32, 192个通道
         x1_3 = self.encoder_block3(x1_2)  # 16x16, 384个通道
