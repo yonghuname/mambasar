@@ -1084,7 +1084,7 @@ class MultiHeadAttention(nn.Module):
 
     def forward(self, x):
         # 调整输入形状
-        # x = x.permute(0, 2, 3, 1).contiguous()  # (batch, height, width, channels)
+        x = x.permute(0, 1, 2, 3).contiguous()  # (batch, height, width, channels)
         print(f"xinmultyhead xsize" ,x.size())
         batch, height, width, channels = x.shape
         x = x.view(batch, height * width, channels)  # (batch, seq_len, embed_dim)
