@@ -1164,27 +1164,27 @@ class AttentionBlock(nn.Module): #gate 注意力
 
     def forward(self, g, x):
         # 打印输入g和x的尺寸
-        print(f"Input g shape: {g.size()}")
-        print(f"Input x shape: {x.size()}")
+        # print(f"Input g shape: {g.size()}")
+        # print(f"Input x shape: {x.size()}")
         # print(F_g)
         # 第一步：通过W_g和W_x处理g和x
         g1 = self.W_g(g)
         x1 = self.W_x(x)
 
         # 打印g1和x1的尺寸
-        print(f"After W_g and W_x: g1 shape {g1.size()}, x1 shape {x1.size()}")
+        # print(f"After W_g and W_x: g1 shape {g1.size()}, x1 shape {x1.size()}")
 
         # 第二步：将g1和x1相加，并通过ReLU激活函数
         psi1 = self.relu(g1 + x1)
 
         # 打印psi1的尺寸
-        print(f"After ReLU: psi1 shape {psi1.size()}")
+        # print(f"After ReLU: psi1 shape {psi1.size()}")
 
         # 第三步：通过psi层生成权重psi1，并应用Sigmoid激活函数
         psi1 = self.psi(psi1)
 
         # 打印应用sigmoid后的psi1的尺寸
-        print(f"After Sigmoid: psi1 shape {psi1.size()}")
+        # print(f"After Sigmoid: psi1 shape {psi1.size()}")
 
         # 第四步：将x与权重psi1相乘，得到最终的输出
         return x * psi1
@@ -1214,17 +1214,17 @@ class Decoder_Block(nn.Module):
 
     def forward(self, de, en):
         de_up = self.up(de)
-
-        print(f"Input de  shape: {de.size()}")
-
-        print(f"Input de_up shape: {de_up.size()}")
+        #
+        # print(f"Input de  shape: {de.size()}")
+        #
+        # print(f"Input de_up shape: {de_up.size()}")
         # Apply attention mechanism before concatenation
         en_att = self.attention(g=de_up , x=en)
-        print(f" en  shape: {en.size()}")
-        print(f"  en_att shape: {en_att.size()}")
+        # print(f" en  shape: {en.size()}")
+        # print(f"  en_att shape: {en_att.size()}")
         output = torch.cat([de_up, en_att], dim=1)
 
-        print(f"  output shape: {output.size()}")
+        # print(f"  output shape: {output.size()}")
         output = self.fuse(output)
 
         return output
